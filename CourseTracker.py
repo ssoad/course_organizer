@@ -1,11 +1,9 @@
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
-from FileItemWidget import FileItemWidget
-import os
 import sys
-from main import load_progress, save_progress
-from natsort import natsorted  # Add this import at the top
-from main import load_directories, save_directories
+from FileItemWidget import FileItemWidget
+from DirectoryItemWidget import DirectoryItemWidget
+from course_manager import CourseManager
 
 class CourseTrackerApp(tk.Tk):
     def __init__(self):
@@ -13,13 +11,12 @@ class CourseTrackerApp(tk.Tk):
         self.title("Course Tracker")
         self.geometry("800x600")
 
-        # Load progress data from JSON
-        self.progress = load_progress()
-        
-        # Load saved directories
-        self.directories = load_directories()
+        # Initialize course manager
+        self.manager = CourseManager()
+        self.current_directory = None
         
         self.setup_ui()
+        self.load_saved_directories()
 
     def setup_ui(self):
         # Create main frame
@@ -63,17 +60,16 @@ class CourseTrackerApp(tk.Tk):
             borderwidth=0,
             highlightthickness=0
         )
-        scrollbar = ttk.Scrollbar(self.content_frame, orient=tk.VERTICAL)
+        self.scrollbar = ttk.Scrollbar(self.content_frame, orient=tk.VERTICAL)
         
         # Create inner frame for items
         self.items_frame = ttk.Frame(self.canvas)
         
         # Configure scrolling
-        self.canvas.configure(yscrollcommand=scrollbar.set)
-        scrollbar.configure(command=self.canvas.yview)
+        self.canvas.configure(yscrollcommand=self.on_scroll)
+        self.scrollbar.configure(command=self.canvas.yview)
         
         # Pack scrollbar and canvas
-        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         self.canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         
         # Create window in canvas
@@ -81,7 +77,8 @@ class CourseTrackerApp(tk.Tk):
             (0, 0),
             window=self.items_frame,
             anchor="nw",
-            tags="items"
+            tags="items",
+            width=self.canvas.winfo_width()
         )
 
         # Add resizing behavior
@@ -93,7 +90,20 @@ class CourseTrackerApp(tk.Tk):
         style.configure('Directory.TFrame', background='white')
         style.configure('DirectoryHover.TFrame', background='#f0f0f0')
 
-        self.load_saved_directories()
+    def on_scroll(self, *args):
+        """Handle scroll events and show/hide scrollbar as needed."""
+        self.scrollbar.set(*args)
+        self.update_scrollbar_visibility()
+
+    def update_scrollbar_visibility(self):
+        """Show or hide scrollbar based on content height."""
+        canvas_height = self.canvas.winfo_height()
+        content_height = self.items_frame.winfo_reqheight()
+        
+        if content_height > canvas_height:
+            self.scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        else:
+            self.scrollbar.pack_forget()
 
     def setup_canvas_configuration(self):
         def _configure_canvas(event):
@@ -102,6 +112,8 @@ class CourseTrackerApp(tk.Tk):
             # Update frame width to match canvas
             canvas_width = event.width if event else self.canvas.winfo_width()
             self.canvas.itemconfig("items", width=canvas_width)
+            # Check if scrollbar is needed
+            self.update_scrollbar_visibility()
 
         self.items_frame.bind("<Configure>", _configure_canvas)
         self.canvas.bind("<Configure>", _configure_canvas)
@@ -150,116 +162,81 @@ class CourseTrackerApp(tk.Tk):
             widget.destroy()
 
         # Show directories
-        for directory in self.directories:
-            if os.path.exists(directory):
-                progress = self.calculate_directory_progress(directory)
-                self.create_directory_item(directory, progress)
+        for directory in self.manager.directories:
+            progress = self.manager.calculate_directory_progress(directory)
+            self.create_directory_item(directory, progress)
 
     def create_directory_item(self, directory, progress):
-        """Create a clickable directory item with folder icon."""
-        frame = ttk.Frame(self.items_frame)
-        frame.pack(fill=tk.X, padx=5, pady=2)
-        
-        # Add folder icon
-        folder_label = ttk.Label(
-            frame,
-            text="📁",  # Folder emoji as icon
-            font=('TkDefaultFont', 14)
+        """Create a directory item widget."""
+        directory_widget = DirectoryItemWidget(
+            self.items_frame,
+            directory,
+            progress,
+            self.show_directory_contents
         )
-        folder_label.pack(side=tk.LEFT, padx=(5, 0), pady=5)
-        
-        # Add directory name and progress
-        label = ttk.Label(
-            frame, 
-            text=f"{os.path.basename(directory)} ({progress:.1f}%)",
-            font=('TkDefaultFont', 11)
-        )
-        label.pack(side=tk.LEFT, padx=5, pady=5)
-        
-        # Make all elements clickable
-        for widget in (frame, folder_label, label):
-            widget.bind('<Button-1>', lambda e, d=directory: self.show_directory_contents(d))
-            # Add hover effect
-            widget.bind('<Enter>', lambda e, w=frame: w.configure(style='DirectoryHover.TFrame'))
-            widget.bind('<Leave>', lambda e, w=frame: w.configure(style='Directory.TFrame'))
+        directory_widget.pack(fill=tk.X, padx=10, pady=5)
 
     def show_directory_contents(self, directory):
         """Show contents of selected directory."""
         self.current_directory = directory
         self.back_button.pack(side=tk.LEFT, before=self.select_dir_button)
         
-        # Clear and show files
+        # Clear current content
         for widget in self.items_frame.winfo_children():
             widget.destroy()
 
         try:
-            # Get all items in directory
-            items = os.listdir(directory)
+            # Get directory contents from manager
+            subdirs, files = self.manager.get_directory_contents(directory)
             
-            # Show subdirectories first
-            for item in natsorted(items):
-                full_path = os.path.join(directory, item)
-                if os.path.isdir(full_path):
-                    progress = self.calculate_directory_progress(full_path)
-                    self.create_directory_item(full_path, progress)
+            # Show subdirectories
+            for dir_path, progress in subdirs:
+                self.create_directory_item(dir_path, progress)
             
-            # Then show files
-            for item in natsorted(items):
-                full_path = os.path.join(directory, item)
-                if os.path.isfile(full_path):
-                    watched = self.progress.get(full_path, False)
-                    file_widget = FileItemWidget(
-                        self.items_frame,
-                        full_path,
-                        watched,
-                        self.update_progress
-                    )
-                    file_widget.pack(fill=tk.X, padx=5, pady=2)
-                    
+            # Show files
+            for file_path, watched in files:
+                file_widget = FileItemWidget(
+                    self.items_frame,
+                    file_path,
+                    watched,
+                    self.update_progress
+                )
+                file_widget.pack(fill=tk.X, padx=5, pady=2)
+                
+            # Update scroll region and visibility after adding content
+            self.canvas.after(100, self.update_content_layout)
+            
         except Exception as e:
             messagebox.showerror("Error", str(e))
+
+    def update_content_layout(self):
+        """Update canvas scroll region and scrollbar visibility."""
+        # Update scroll region
+        self.canvas.configure(scrollregion=self.canvas.bbox("all"))
+        
+        # Update frame width
+        self.canvas.itemconfig("items", width=self.canvas.winfo_width())
+        
+        # Update scrollbar visibility
+        self.update_scrollbar_visibility()
+        
+        # Force geometry update
+        self.items_frame.update_idletasks()
+
+    def update_progress(self, file_path, watched):
+        """Update the progress data for a file."""
+        self.manager.update_file_progress(file_path, watched)
+        self.load_saved_directories()
+
+    def select_directory(self):
+        """Open a dialog to select directory."""
+        selected_dir = filedialog.askdirectory(title="Select Courses Directory")
+        if selected_dir:
+            if self.manager.add_directory(selected_dir):
+                self.load_saved_directories()
 
     def remove_selected_directory(self):
         """Remove selected directory from tracking."""
         if self.current_directory:
-            directory = self.current_directory
-            if directory in self.directories:
-                self.directories.remove(directory)
-                save_directories(self.directories)
+            if self.manager.remove_directory(self.current_directory):
                 self.go_back()
-
-    def select_directory(self):
-        """Open a dialog to select the courses directory."""
-        selected_dir = filedialog.askdirectory(title="Select Courses Directory")
-        if selected_dir and selected_dir not in self.directories:
-            self.directories.append(selected_dir)
-            save_directories(self.directories)
-            self.load_saved_directories()
-
-    def calculate_directory_progress(self, directory):
-        """Calculate watch progress for a directory."""
-        total_files = 0
-        watched_files = 0
-        
-        for root, _, files in os.walk(directory):
-            for file in files:
-                full_path = os.path.join(root, file)
-                total_files += 1
-                if self.progress.get(full_path, False):
-                    watched_files += 1
-        
-        return (watched_files / total_files * 100) if total_files > 0 else 0
-
-    def update_progress(self, file_path, watched):
-        """Update the progress data for a file and save to JSON."""
-        self.progress[file_path] = watched
-        save_progress(self.progress)
-        
-        # Update progress for the containing directory
-        directory = os.path.dirname(file_path)
-        while directory:
-            if directory in self.directories:
-                progress = self.calculate_directory_progress(directory)
-                self.load_saved_directories()
-                break
-            directory = os.path.dirname(directory)
