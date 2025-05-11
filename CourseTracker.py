@@ -3,6 +3,7 @@ from PyQt6.QtCore import *
 from PyQt6.QtGui import *
 from course_manager import CourseManager
 from FileItemWidget import FileItemWidget
+from DirectoryItemWidget import DirectoryItemWidget
 import os
 
 class CourseTrackerApp(QMainWindow):
@@ -123,9 +124,12 @@ class CourseTrackerApp(QMainWindow):
         self.content_list.clear()
         for directory in self.manager.directories:
             progress = self.manager.calculate_directory_progress(directory)
-            item = QListWidgetItem(f"{os.path.basename(directory)} ({progress:.1f}%)")
+            item = QListWidgetItem(self.content_list)
+            item.setSizeHint(QSize(0, 100))  # Set height for directory items
             item.setData(Qt.ItemDataRole.UserRole, directory)
-            self.content_list.addItem(item)
+            
+            widget = DirectoryItemWidget(directory, progress)
+            self.content_list.setItemWidget(item, widget)
 
     def load_directory_contents(self, directory):
         self.content_list.clear()

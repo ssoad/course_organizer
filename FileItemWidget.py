@@ -195,23 +195,70 @@ class FileItemWidget(QWidget):
 
     def set_file_icon(self, mime_type):
         """Set appropriate icon based on mime type"""
-        icon_name = "text-x-generic"
+        # Define icon mapping with more specific types
+        icon_mapping = {
+            'video/': 'video.png',
+            'audio/': 'audio.png',
+            'image/': 'image.png',
+            'application/pdf': 'pdf.png',
+            'text/html': 'html.png',
+            'text/plain': 'file.png',  # Added specific text/plain mapping
+            'text/': 'text.png',
+            'application/': 'file.png'
+        }
         
-        if mime_type:
-            if mime_type.startswith('video/'):
-                icon_name = "video-x-generic"
-            elif mime_type.startswith('audio/'):
-                icon_name = "audio-x-generic"
-            elif mime_type.startswith('image/'):
-                icon_name = "image-x-generic"
-            elif mime_type == 'application/pdf':
-                icon_name = "application-pdf"
-            elif mime_type.startswith('text/'):
-                icon_name = "text-x-generic"
-                
-        icon = QIcon.fromTheme(icon_name)
-        pixmap = icon.pixmap(self.thumbnail_size)
-        self.icon_label.setPixmap(pixmap)
+        # Additional mime type mappings for specific extensions
+        extension_mapping = {
+            # Web files
+            '.html': 'html.png',
+            '.htm': 'html.png',
+            '.xhtml': 'html.png',
+            '.php': 'html.png',
+            '.asp': 'html.png',
+            '.jsx': 'html.png',
+            # Text files
+            '.txt': 'text.png',
+            '.log': 'text.png',
+            '.md': 'text.png',
+            '.json': 'text.png',
+            '.xml': 'text.png',
+            '.csv': 'text.png',
+            '.ini': 'text.png',
+            '.conf': 'text.png'
+        }
+        
+        # First check file extension
+        file_ext = os.path.splitext(self.file_path)[1].lower()
+        icon_file = extension_mapping.get(file_ext)
+        
+        # If no match in extensions, check mime type
+        if not icon_file and mime_type:
+            for mime_prefix, icon_name in icon_mapping.items():
+                if mime_type.startswith(mime_prefix):
+                    icon_file = icon_name
+                    break
+        
+        # Default icon if no matches found
+        if not icon_file:
+            icon_file = 'file.png'
+        
+        # Construct icon path
+        icon_path = os.path.join(os.path.dirname(__file__), 'icons', icon_file)
+        
+        # Load and set icon
+        if os.path.exists(icon_path):
+            pixmap = QPixmap(icon_path)
+            scaled_pixmap = pixmap.scaled(
+                self.thumbnail_size,
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation
+            )
+            self.icon_label.setPixmap(scaled_pixmap)
+        else:
+            # Fallback to system icons if custom icon not found
+            icon = QIcon.fromTheme('text-x-generic')
+            pixmap = icon.pixmap(self.thumbnail_size)
+            self.icon_label.setPixmap(pixmap)
 
     def get_file_details(self):
         try:
