@@ -1,242 +1,162 @@
-import tkinter as tk
-from tkinter import ttk, filedialog, messagebox
-import sys
-from FileItemWidget import FileItemWidget
-from DirectoryItemWidget import DirectoryItemWidget
+from PyQt6.QtWidgets import *
+from PyQt6.QtCore import *
+from PyQt6.QtGui import *
 from course_manager import CourseManager
+from FileItemWidget import FileItemWidget
+import os
 
-class CourseTrackerApp(tk.Tk):
+class CourseTrackerApp(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.title("Course Tracker")
-        self.geometry("800x600")
-
+        self.setWindowTitle("Course Tracker")
+        self.setMinimumSize(800, 600)
+        
         # Initialize course manager
         self.manager = CourseManager()
         self.current_directory = None
         
+        # Setup UI
         self.setup_ui()
-        self.load_saved_directories()
-
+        self.load_directory_list()
+        
     def setup_ui(self):
-        # Create main frame
-        main_frame = ttk.Frame(self)
-        main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
-
-        # Top panel with navigation and actions
-        top_frame = ttk.Frame(main_frame)
-        top_frame.pack(fill=tk.X, pady=(0, 10))
+        # Create central widget and layout
+        central_widget = QWidget()
+        self.setCentralWidget(central_widget)
+        layout = QVBoxLayout(central_widget)
         
-        # Add back button (hidden by default)
-        self.back_button = ttk.Button(
-            top_frame,
-            text="← Back",
-            command=self.go_back
-        )
+        # Create toolbar with modern style
+        toolbar = QToolBar()
+        toolbar.setIconSize(QSize(24, 24))
+        toolbar.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+        self.addToolBar(toolbar)
         
-        # Add directory button
-        self.select_dir_button = ttk.Button(
-            top_frame,
-            text="Add Directory",
-            command=self.select_directory
-        )
-        self.select_dir_button.pack(side=tk.LEFT, padx=(0, 5))
-
-        self.remove_dir_button = ttk.Button(
-            top_frame,
-            text="Remove Directory",
-            command=self.remove_selected_directory
-        )
-        self.remove_dir_button.pack(side=tk.LEFT)
-
-        # Main content area
-        self.content_frame = ttk.Frame(main_frame)
-        self.content_frame.pack(fill=tk.BOTH, expand=True)
-
-        # Create scrollable canvas for content
-        self.canvas = tk.Canvas(
-            self.content_frame,
-            bg=self.cget('bg'),
-            borderwidth=0,
-            highlightthickness=0
-        )
-        self.scrollbar = ttk.Scrollbar(self.content_frame, orient=tk.VERTICAL)
+        # Add actions
+        self.back_action = QAction(QIcon.fromTheme("go-previous"), "Back", self)
+        self.add_action = QAction(QIcon.fromTheme("list-add"), "Add Directory", self)
+        self.remove_action = QAction(QIcon.fromTheme("list-remove"), "Remove Directory", self)
         
-        # Create inner frame for items
-        self.items_frame = ttk.Frame(self.canvas)
+        # Connect actions to slots
+        self.back_action.triggered.connect(self.go_back)
+        self.add_action.triggered.connect(self.add_directory)
+        self.remove_action.triggered.connect(self.remove_directory)
         
-        # Configure scrolling
-        self.canvas.configure(yscrollcommand=self.on_scroll)
-        self.scrollbar.configure(command=self.canvas.yview)
+        toolbar.addAction(self.back_action)
+        toolbar.addAction(self.add_action)
+        toolbar.addAction(self.remove_action)
         
-        # Pack scrollbar and canvas
-        self.canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        # Create content list with custom style
+        self.content_list = QListWidget()
+        self.content_list.setSpacing(8)
+        self.content_list.itemDoubleClicked.connect(self.on_item_double_clicked)
+        layout.addWidget(self.content_list)
         
-        # Create window in canvas
-        self.canvas_window = self.canvas.create_window(
-            (0, 0),
-            window=self.items_frame,
-            anchor="nw",
-            tags="items",
-            width=self.canvas.winfo_width()
-        )
-
-        # Add resizing behavior
-        self.setup_canvas_configuration()
-        self.setup_scrolling()
-
-        # Add styles for directory items
-        style = ttk.Style()
-        style.configure('Directory.TFrame', background='white')
-        style.configure('DirectoryHover.TFrame', background='#f0f0f0')
-
-    def on_scroll(self, *args):
-        """Handle scroll events and show/hide scrollbar as needed."""
-        self.scrollbar.set(*args)
-        self.update_scrollbar_visibility()
-
-    def update_scrollbar_visibility(self):
-        """Show or hide scrollbar based on content height."""
-        canvas_height = self.canvas.winfo_height()
-        content_height = self.items_frame.winfo_reqheight()
+        # Set initial button states
+        self.back_action.setEnabled(False)
+        self.remove_action.setEnabled(False)
         
-        if content_height > canvas_height:
-            self.scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-        else:
-            self.scrollbar.pack_forget()
+        # Apply styles
+        self.apply_styles()
 
-    def setup_canvas_configuration(self):
-        def _configure_canvas(event):
-            # Update scroll region
-            self.canvas.configure(scrollregion=self.canvas.bbox("all"))
-            # Update frame width to match canvas
-            canvas_width = event.width if event else self.canvas.winfo_width()
-            self.canvas.itemconfig("items", width=canvas_width)
-            # Check if scrollbar is needed
-            self.update_scrollbar_visibility()
+    def apply_styles(self):
+        self.setStyleSheet("""
+            QMainWindow {
+                background-color: #f5f5f5;
+            }
+            QToolBar {
+                background-color: white;
+                border-bottom: 1px solid #e0e0e0;
+                padding: 8px;
+            }
+            QListWidget {
+                background-color: white;
+                border-radius: 8px;
+                border: 1px solid #e0e0e0;
+                padding: 8px;
+            }
+            QListWidget::item {
+                padding: 8px;
+                border-radius: 4px;
+            }
+            QListWidget::item:hover {
+                background-color: #f0f0f0;
+            }
+            QListWidget::item:selected {
+                background-color: #e3f2fd;
+                color: #1976d2;
+            }
+        """)
 
-        self.items_frame.bind("<Configure>", _configure_canvas)
-        self.canvas.bind("<Configure>", _configure_canvas)
-        self.canvas.after(100, lambda: _configure_canvas(None))
+    def add_directory(self):
+        directory = QFileDialog.getExistingDirectory(self, "Select Directory")
+        if directory:
+            if self.manager.add_directory(directory):
+                self.load_directory_list()
 
-    def setup_scrolling(self):
-        """Setup mouse wheel scrolling for canvas."""
-        def _on_mousewheel(event):
-            if sys.platform == "darwin":
-                # macOS scrolling
-                delta = event.delta
-                scroll_speed = 1  # Adjust this value to change scroll speed
-                self.canvas.yview_scroll(-int(delta * scroll_speed), "units")
-            else:
-                # Windows/Linux scrolling
-                self.canvas.yview_scroll(int(-1 * (event.delta/120)), "units")
-
-        def _bind_mousewheel(event):
-            # Bind mouse wheel for all platforms
-            self.canvas.bind_all("<MouseWheel>", _on_mousewheel)
-            if not sys.platform == "darwin":
-                self.canvas.bind_all("<Button-4>", _on_mousewheel)
-                self.canvas.bind_all("<Button-5>", _on_mousewheel)
-
-        def _unbind_mousewheel(event):
-            # Unbind mouse wheel events
-            self.canvas.unbind_all("<MouseWheel>")
-            if not sys.platform == "darwin":
-                self.canvas.unbind_all("<Button-4>")
-                self.canvas.unbind_all("<Button-5>")
-
-        # Bind enter/leave events for mousewheel
-        self.canvas.bind('<Enter>', _bind_mousewheel)
-        self.canvas.bind('<Leave>', _unbind_mousewheel)
-
-    def go_back(self):
-        """Return to main directory list."""
-        self.back_button.pack_forget()
-        self.current_directory = None
-        self.load_saved_directories()
-
-    def load_saved_directories(self):
-        """Show main directory list."""
-        # Clear current content
-        for widget in self.items_frame.winfo_children():
-            widget.destroy()
-
-        # Show directories
-        for directory in self.manager.directories:
-            progress = self.manager.calculate_directory_progress(directory)
-            self.create_directory_item(directory, progress)
-
-    def create_directory_item(self, directory, progress):
-        """Create a directory item widget."""
-        directory_widget = DirectoryItemWidget(
-            self.items_frame,
-            directory,
-            progress,
-            self.show_directory_contents
-        )
-        directory_widget.pack(fill=tk.X, padx=10, pady=5)
-
-    def show_directory_contents(self, directory):
-        """Show contents of selected directory."""
-        self.current_directory = directory
-        self.back_button.pack(side=tk.LEFT, before=self.select_dir_button)
-        
-        # Clear current content
-        for widget in self.items_frame.winfo_children():
-            widget.destroy()
-
-        try:
-            # Get directory contents from manager
-            subdirs, files = self.manager.get_directory_contents(directory)
-            
-            # Show subdirectories
-            for dir_path, progress in subdirs:
-                self.create_directory_item(dir_path, progress)
-            
-            # Show files
-            for file_path, watched in files:
-                file_widget = FileItemWidget(
-                    self.items_frame,
-                    file_path,
-                    watched,
-                    self.update_progress
-                )
-                file_widget.pack(fill=tk.X, padx=5, pady=2)
-                
-            # Update scroll region and visibility after adding content
-            self.canvas.after(100, self.update_content_layout)
-            
-        except Exception as e:
-            messagebox.showerror("Error", str(e))
-
-    def update_content_layout(self):
-        """Update canvas scroll region and scrollbar visibility."""
-        # Update scroll region
-        self.canvas.configure(scrollregion=self.canvas.bbox("all"))
-        
-        # Update frame width
-        self.canvas.itemconfig("items", width=self.canvas.winfo_width())
-        
-        # Update scrollbar visibility
-        self.update_scrollbar_visibility()
-        
-        # Force geometry update
-        self.items_frame.update_idletasks()
-
-    def update_progress(self, file_path, watched):
-        """Update the progress data for a file."""
-        self.manager.update_file_progress(file_path, watched)
-        self.load_saved_directories()
-
-    def select_directory(self):
-        """Open a dialog to select directory."""
-        selected_dir = filedialog.askdirectory(title="Select Courses Directory")
-        if selected_dir:
-            if self.manager.add_directory(selected_dir):
-                self.load_saved_directories()
-
-    def remove_selected_directory(self):
-        """Remove selected directory from tracking."""
+    def remove_directory(self):
         if self.current_directory:
             if self.manager.remove_directory(self.current_directory):
                 self.go_back()
+
+    def go_back(self):
+        self.current_directory = None
+        self.back_action.setEnabled(False)
+        self.remove_action.setEnabled(False)
+        self.load_directory_list()
+
+    def on_item_double_clicked(self, item):
+        path = item.data(Qt.ItemDataRole.UserRole)
+        if not path:
+            return
+            
+        if os.path.isdir(path):
+            # Handle directory double-click
+            self.current_directory = path
+            self.back_action.setEnabled(True)
+            self.remove_action.setEnabled(path in self.manager.directories)
+            self.load_directory_contents(path)
+        else:
+            # For files, the FileItemWidget will handle the double-click
+            pass
+
+    def load_directory_list(self):
+        self.content_list.clear()
+        for directory in self.manager.directories:
+            progress = self.manager.calculate_directory_progress(directory)
+            item = QListWidgetItem(f"{os.path.basename(directory)} ({progress:.1f}%)")
+            item.setData(Qt.ItemDataRole.UserRole, directory)
+            self.content_list.addItem(item)
+
+    def load_directory_contents(self, directory):
+        self.content_list.clear()
+        try:
+            subdirs, files = self.manager.get_directory_contents(directory)
+            
+            # Add subdirectories first
+            for dir_path, progress in subdirs:
+                item = QListWidgetItem(self.content_list)
+                item.setData(Qt.ItemDataRole.UserRole, dir_path)
+                item_text = f"📁 {os.path.basename(dir_path)} ({progress:.1f}%)"
+                item.setText(item_text)
+                self.content_list.addItem(item)
+            
+            # Then add files
+            for file_path, watched in files:
+                item = QListWidgetItem(self.content_list)
+                item.setSizeHint(QSize(0, 64))  # Increased height for thumbnails
+                item.setData(Qt.ItemDataRole.UserRole, file_path)
+                
+                widget = FileItemWidget(file_path, watched)
+                widget.watchedChanged.connect(self.on_watch_changed)
+                self.content_list.setItemWidget(item, widget)
+                
+        except Exception as e:
+            QMessageBox.critical(self, "Error", str(e))
+
+    def on_watch_changed(self, file_path, watched):
+        """Handle watch status changes"""
+        self.manager.update_file_progress(file_path, watched)
+        # Refresh directory progress
+        if self.current_directory:
+            progress = self.manager.calculate_directory_progress(self.current_directory)
+            self.update_directory_progress(self.current_directory, progress)

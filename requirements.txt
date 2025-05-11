@@ -1,3 +1,5 @@
+PyQt6
 pillow
 opencv-python
+pdf2image
 pyinstaller

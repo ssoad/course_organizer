@@ -15,9 +15,20 @@ class CourseManager:
         # Load saved data
         self.progress = self._load_progress()
         self.directories = self._load_directories()
+        
+        # Define excluded file types
+        self.excluded_extensions = {
+            '.srt',  # SubRip subtitles
+            '.vtt',  # WebVTT subtitles
+            '.sub',  # SubViewer subtitles
+            '.smi',  # SAMI subtitles
+            '.ssa',  # SubStation Alpha
+            '.ass',  # Advanced SubStation Alpha
+            '.idx',  # VobSub index
+            '.mks',  # Matroska subtitles
+        }
 
     def _load_progress(self):
-        """Load progress data from JSON file."""
         if self.progress_file.exists():
             try:
                 with open(self.progress_file, 'r') as f:
@@ -27,7 +38,6 @@ class CourseManager:
         return {}
 
     def _save_progress(self):
-        """Save progress data to JSON file."""
         try:
             with open(self.progress_file, 'w') as f:
                 json.dump(self.progress, f, indent=2)
@@ -35,7 +45,6 @@ class CourseManager:
             print(f"Error saving progress: {e}")
 
     def _load_directories(self):
-        """Load saved directories from JSON file."""
         if self.directories_file.exists():
             try:
                 with open(self.directories_file, 'r') as f:
@@ -45,7 +54,6 @@ class CourseManager:
         return []
 
     def _save_directories(self):
-        """Save directories to JSON file."""
         try:
             with open(self.directories_file, 'w') as f:
                 json.dump(self.directories, f, indent=2)
@@ -53,7 +61,6 @@ class CourseManager:
             print(f"Error saving directories: {e}")
 
     def add_directory(self, directory):
-        """Add a directory to tracking."""
         if directory and directory not in self.directories:
             self.directories.append(directory)
             self._save_directories()
@@ -61,15 +68,37 @@ class CourseManager:
         return False
 
     def remove_directory(self, directory):
-        """Remove a directory from tracking."""
         if directory in self.directories:
             self.directories.remove(directory)
             self._save_directories()
             return True
         return False
 
+    def set_excluded_extensions(self, extensions):
+        """Update the list of excluded file extensions."""
+        if isinstance(extensions, (list, set)):
+            self.excluded_extensions = {ext.lower() if ext.startswith('.') else f'.{ext.lower()}' 
+                                     for ext in extensions}
+    
+    def add_excluded_extension(self, extension):
+        """Add a single extension to excluded list."""
+        if extension:
+            ext = extension.lower()
+            ext = ext if ext.startswith('.') else f'.{ext}'
+            self.excluded_extensions.add(ext)
+    
+    def remove_excluded_extension(self, extension):
+        """Remove a single extension from excluded list."""
+        if extension:
+            ext = extension.lower()
+            ext = ext if ext.startswith('.') else f'.{ext}'
+            self.excluded_extensions.discard(ext)
+    
+    def is_excluded_file(self, file_path):
+        """Check if a file should be excluded."""
+        return Path(file_path).suffix.lower() in self.excluded_extensions
+
     def get_directory_contents(self, directory):
-        """Get sorted contents of a directory."""
         if not os.path.exists(directory):
             return [], []
 
@@ -82,27 +111,26 @@ class CourseManager:
             if os.path.isdir(full_path):
                 progress = self.calculate_directory_progress(full_path)
                 subdirs.append((full_path, progress))
-            elif os.path.isfile(full_path):
+            elif os.path.isfile(full_path) and not self.is_excluded_file(full_path):
                 watched = self.progress.get(full_path, False)
                 files.append((full_path, watched))
 
         return subdirs, files
 
     def calculate_directory_progress(self, directory):
-        """Calculate watch progress for a directory."""
         total_files = 0
         watched_files = 0
         
         for root, _, files in os.walk(directory):
             for file in files:
                 full_path = os.path.join(root, file)
-                total_files += 1
-                if self.progress.get(full_path, False):
-                    watched_files += 1
+                if not self.is_excluded_file(full_path):
+                    total_files += 1
+                    if self.progress.get(full_path, False):
+                        watched_files += 1
         
         return (watched_files / total_files * 100) if total_files > 0 else 0
 
     def update_file_progress(self, file_path, watched):
-        """Update progress for a file."""
         self.progress[file_path] = watched
         self._save_progress()

@@ -3,6 +3,8 @@ import os
 import json
 import logging
 from pathlib import Path
+from PyQt6.QtWidgets import QApplication
+from CourseTracker import CourseTrackerApp
 
 # Configuration
 APP_DIR = Path.home() / '.course_organizer'
@@ -60,16 +62,15 @@ def save_directories(directories):
         print(f"Error saving directories: {e}")
 
 def main():
-    try:
-        from CourseTracker import CourseTrackerApp
-        app = CourseTrackerApp()
-        logging.info("Application started successfully")
-        app.mainloop()
-        
-    except Exception as e:
-        logging.critical(f"Application failed to start: {e}")
-        print(f"Application failed to start: {e}")
-        sys.exit(1)
+    # Create the Qt Application
+    app = QApplication(sys.argv)
+    
+    # Create and show the main window
+    window = CourseTrackerApp()
+    window.show()
+    
+    # Start the event loop
+    sys.exit(app.exec())
 
 if __name__ == "__main__":
     main()
