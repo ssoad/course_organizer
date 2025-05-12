@@ -5,8 +5,11 @@ from PyInstaller.utils.hooks import collect_data_files
 
 block_cipher = None
 
-# Define base directory
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+# Define base directory - fixed to avoid __file__ issue
+try:
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+except NameError:
+    BASE_DIR = os.path.abspath(os.getcwd())
 
 # Get poppler path from environment
 poppler_path = os.environ.get('POPPLER_PATH', '')
@@ -14,12 +17,17 @@ poppler_path = os.environ.get('POPPLER_PATH', '')
 # Define icon path with absolute path
 icon_path = os.path.join(BASE_DIR, 'icons', 'app.icns')
 
+# Debug output to help diagnose path issues
+print(f"BASE_DIR: {BASE_DIR}")
+print(f"POPPLER_PATH: {poppler_path}")
+print(f"ICON_PATH: {icon_path}")
+
 a = Analysis(
     [os.path.join(BASE_DIR, 'main.py')],
     pathex=[BASE_DIR],
     binaries=[],
     datas=[
-        (os.path.join(BASE_DIR, 'icons/*.png'), 'icons'),  # Include all PNG icons
+        (os.path.join(BASE_DIR, 'icons', '*.png'), 'icons'),  # Fixed glob pattern
         (os.path.join(BASE_DIR, 'styles.qss'), '.'),
     ],
     hiddenimports=[

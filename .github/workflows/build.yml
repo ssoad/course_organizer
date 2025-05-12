@@ -55,7 +55,9 @@ jobs:
     - name: Set Poppler Path (Windows)
       if: runner.os == 'Windows'
       shell: bash
-      run: echo "POPPLER_PATH=${{ github.workspace }}/popplerbin" >> $GITHUB_ENV
+      run: |
+        echo "POPPLER_PATH=$GITHUB_WORKSPACE/popplerbin" >> $GITHUB_ENV
+        ls -la $GITHUB_WORKSPACE/popplerbin  # Debug output
 
     - name: Set Poppler Path (macOS)
       if: runner.os == 'macOS'
@@ -66,6 +68,12 @@ jobs:
       if: runner.os == 'Linux'
       shell: bash
       run: echo "POPPLER_PATH=/usr" >> $GITHUB_ENV
+
+    - name: Debug Environment Variables
+      run: |
+        echo "Current directory: $(pwd)"
+        echo "POPPLER_PATH: $POPPLER_PATH"
+        ls -la  # List directory contents
 
     - name: Build Application
       run: |
