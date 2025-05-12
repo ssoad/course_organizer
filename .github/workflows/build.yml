@@ -96,7 +96,11 @@ jobs:
       if: runner.os == 'Linux'
       run: |
         cd dist
-        zip -r ../CourseOrganizer-Linux.zip "Course Organizer"
+        # List directory contents to debug
+        echo "Contents of dist directory:"
+        ls -la
+        # Use wildcard to match the actual directory name
+        zip -r ../CourseOrganizer-Linux.zip ./*
 
     # Upload artifacts (the ZIP files we just created)
     - name: Upload Build Artifact
