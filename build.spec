@@ -55,10 +55,29 @@ if sys.platform.startswith('win'):
         (os.path.join('poppler', 'bin', 'pdfinfo.exe'), os.path.join(poppler_path, 'pdfinfo.exe'), 'BINARY')
     ]
 elif sys.platform.startswith('darwin'):
-    a.binaries += [
-        (os.path.join('poppler', 'bin', 'pdftocairo'), os.path.join(poppler_path, 'bin', 'pdftocairo'), 'BINARY'),
-        (os.path.join('poppler', 'bin', 'pdfinfo'), os.path.join(poppler_path, 'bin', 'pdfinfo'), 'BINARY')
+    # Try various possible locations for poppler binaries
+    poppler_bin_locations = [
+        os.path.join(poppler_path, 'bin'),
+        os.path.join('/usr/local/bin'),
+        os.path.join('/opt/homebrew/bin')
     ]
+    
+    pdftocairo_path = None
+    pdfinfo_path = None
+    
+    # Find actual binary paths
+    for location in poppler_bin_locations:
+        if os.path.exists(os.path.join(location, 'pdftocairo')):
+            pdftocairo_path = os.path.join(location, 'pdftocairo')
+        if os.path.exists(os.path.join(location, 'pdfinfo')):
+            pdfinfo_path = os.path.join(location, 'pdfinfo')
+    
+    # Add poppler binaries if found
+    if pdftocairo_path and pdfinfo_path:
+        a.binaries.append(('poppler/bin/pdftocairo', pdftocairo_path, 'BINARY'))
+        a.binaries.append(('poppler/bin/pdfinfo', pdfinfo_path, 'BINARY'))
+    else:
+        print("WARNING: poppler binaries not found in expected locations")
 else:  # Linux
     a.binaries += [
         (os.path.join('poppler', 'bin', 'pdftocairo'), os.path.join(poppler_path, 'bin', 'pdftocairo'), 'BINARY'),

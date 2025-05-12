@@ -32,6 +32,15 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         pip install pyinstaller
+        
+        # Find poppler installation
+        echo "Checking poppler location..."
+        which pdftocairo
+        which pdfinfo
+        ls -la $(brew --prefix poppler)/bin
+        
+        # Save actual poppler directory for later use
+        echo "POPPLER_PATH=$(brew --prefix poppler)" >> $GITHUB_ENV
 
     - name: Install dependencies (Ubuntu)
       if: runner.os == 'Linux'
@@ -69,11 +78,6 @@ jobs:
       run: |
         echo "POPPLER_PATH=$GITHUB_WORKSPACE/popplerbin" >> $GITHUB_ENV
         ls -la $GITHUB_WORKSPACE/popplerbin  # Debug output
-
-    - name: Set Poppler Path (macOS)
-      if: runner.os == 'macOS'
-      shell: bash
-      run: echo "POPPLER_PATH=/usr/local/opt/poppler" >> $GITHUB_ENV
 
     - name: Set Poppler Path (Linux)
       if: runner.os == 'Linux'
