@@ -48,9 +48,20 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         pip install pyinstaller
-        # Download and extract poppler for Windows
-        curl -L https://github.com/oschwartz10612/poppler-windows/releases/latest/download/Release-dll.zip -o poppler.zip
-        7z x poppler.zip -opopplerbin
+        
+        # Download poppler with error checking
+        echo "Downloading poppler for Windows..."
+        curl -L -o poppler.zip "https://github.com/oschwartz10612/poppler-windows/releases/download/v23.11.0/Release-23.11.0.zip"
+        
+        # Verify download
+        dir poppler.zip
+        
+        # Extract with verbose output
+        echo "Extracting poppler..."
+        7z x poppler.zip -opopplerbin -y
+        
+        # Verify extraction
+        dir popplerbin
 
     - name: Set Poppler Path (Windows)
       if: runner.os == 'Windows'
