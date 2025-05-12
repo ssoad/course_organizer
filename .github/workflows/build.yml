@@ -60,7 +60,7 @@ jobs:
         
         # Download poppler with error checking
         echo "Downloading poppler for Windows..."
-        curl -L -o poppler.zip "https://github.com/oschwartz10612/poppler-windows/releases/download/v23.11.0/Release-23.11.0.zip"
+        curl -L -o poppler.zip "https://github.com/oschwartz10612/poppler-windows/releases/download/v24.08.0-0/Release-24.08.0-0.zip"
         
         # Verify download
         dir poppler.zip
