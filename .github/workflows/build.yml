@@ -117,9 +117,6 @@ jobs:
       run: |
         # Make build script executable
         chmod +x build.sh
-        
-        # Modify the spec file to add universal2 target architecture
-        sed -i '' 's/EXE(.*/EXE(pyz,\\n    a.scripts,\\n    a.binaries,\\n    a.datas,\\n    [],\\n    name="Course Organizer",\\n    debug=False,\\n    bootloader_ignore_signals=False,\\n    strip=False,\\n    upx=True,\\n    runtime_tmpdir=None,\\n    console=False,\\n    target_arch="universal2",\\n    codesign_identity=None,\\n    entitlements_file=None,\\n    icon=icon_path)/' build.spec
     
         # Now run PyInstaller with the modified spec file
         python -m PyInstaller build.spec

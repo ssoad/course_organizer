@@ -86,46 +86,70 @@ else:  # Linux
 
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 
-exe = EXE(
-    pyz,
-    a.scripts,
-    [],
-    exclude_binaries=True,
-    name='Course Tracker',
-    debug=False,
-    bootloader_ignore_signals=False,
-    strip=False,
-    upx=True,
-    console=False,
-    disable_windowed_traceback=False,
-    argv_emulation=True,
-    target_arch=None,
-    codesign_identity=None,
-    entitlements_file=None,
-)
-
-coll = COLLECT(
-    exe,
-    a.binaries,
-    a.zipfiles,
-    a.datas,
-    strip=False,
-    upx=True,
-    upx_exclude=[],
-    name='Course Tracker',
-)
-
-app = BUNDLE(
-    coll,
-    name='Course Tracker.app',
-    icon=icon_path if os.path.exists(icon_path) else None,
-    bundle_identifier='com.coursetracker.app',
-    info_plist={
-        'NSHighResolutionCapable': 'True',
-        'LSMinimumSystemVersion': '10.15',
-        'CFBundleDisplayName': 'Course Tracker',
-        'CFBundleName': 'Course Tracker',
-        'CFBundleVersion': '1.0.0',
-        'CFBundleShortVersionString': '1.0.0',
-    },
-)
+# For macOS, use a one-file build with universal2 architecture
+if sys.platform.startswith('darwin'):
+    exe = EXE(
+        pyz,
+        a.scripts,
+        a.binaries,
+        a.datas,
+        [],
+        name='Course Tracker',
+        debug=False,
+        bootloader_ignore_signals=False,
+        strip=False,
+        upx=True,
+        runtime_tmpdir=None,
+        console=False,
+        target_arch='universal2',
+        codesign_identity=None,
+        entitlements_file=None,
+        icon=icon_path,
+    )
+    
+    # Add BUNDLE section for the app bundle
+    app = BUNDLE(
+        exe,  # Note: directly using exe instead of coll
+        name='Course Tracker.app',
+        icon=icon_path if os.path.exists(icon_path) else None,
+        bundle_identifier='com.coursetracker.app',
+        info_plist={
+            'NSHighResolutionCapable': 'True',
+            'LSMinimumSystemVersion': '10.15',
+            'CFBundleDisplayName': 'Course Tracker',
+            'CFBundleName': 'Course Tracker',
+            'CFBundleVersion': '1.0.0',
+            'CFBundleShortVersionString': '1.0.0',
+        },
+    )
+# For Windows and Linux, keep the existing approach with COLLECT
+else:
+    exe = EXE(
+        pyz,
+        a.scripts,
+        [],
+        exclude_binaries=True,
+        name='Course Tracker',
+        debug=False,
+        bootloader_ignore_signals=False,
+        strip=False,
+        upx=True,
+        console=False,
+        disable_windowed_traceback=False,
+        argv_emulation=sys.platform.startswith('darwin'),
+        target_arch=None,
+        codesign_identity=None,
+        entitlements_file=None,
+        icon=icon_path if sys.platform.startswith('win') else None,
+    )
+    
+    coll = COLLECT(
+        exe,
+        a.binaries,
+        a.zipfiles,
+        a.datas,
+        strip=False,
+        upx=True,
+        upx_exclude=[],
+        name='Course Tracker',
+    )
