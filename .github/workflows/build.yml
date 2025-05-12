@@ -116,6 +116,7 @@ jobs:
         }
 
     - name: Build Application
+      if: runner.os != 'macOS'  # Skip for macOS as we have architecture-specific builds
       run: |
         python -m PyInstaller build.spec
 
@@ -124,7 +125,8 @@ jobs:
       run: |
         sed -i '' 's/^.*target_arch=.*$/        target_arch="arm64",/' build.spec
         chmod +x build.sh
-        python -m PyInstaller build.spec
+        # Use --clean flag to ensure directory is empty
+        python -m PyInstaller build.spec --clean
         ./build.sh
         
         cd dist
@@ -137,7 +139,8 @@ jobs:
       run: |
         sed -i '' 's/^.*target_arch=.*$/        target_arch="x86_64",/' build.spec
         chmod +x build.sh
-        python -m PyInstaller build.spec
+        # Use --clean flag to ensure directory is empty
+        python -m PyInstaller build.spec --clean
         ./build.sh
         
         cd dist
