@@ -22,7 +22,7 @@ a = Analysis(
         (os.path.join(poppler_path, 'bin/pdfinfo'), 'poppler/bin'),
     ],
     datas=[
-        (os.path.join(BASE_DIR, 'icons/*'), 'icons'),
+        (os.path.join(BASE_DIR, 'icons/*.png'), 'icons'),  # Include all PNG icons
         (os.path.join(BASE_DIR, 'styles.qss'), '.'),
     ],
     hiddenimports=[

@@ -27,14 +27,8 @@ class FileItemWidget(QWidget):
         
         # Left side - Icon container with shadow
         icon_container = QFrame()
-        icon_container.setFixedSize(44, 44)  # Increased container size
-        icon_container.setStyleSheet("""
-            QFrame {
-                background-color: #f1f3f5;
-                border-radius: 10px;
-                padding: 2px;
-            }
-        """)
+        icon_container.setObjectName("iconContainer")
+        icon_container.setFixedSize(44, 44)
         
         # Icon layout
         icon_layout = QVBoxLayout(icon_container)
@@ -43,14 +37,9 @@ class FileItemWidget(QWidget):
         
         # Add icon with fixed size
         self.icon_label = QLabel()
-        self.icon_label.setFixedSize(36, 36)  # Increased icon size
+        self.icon_label.setObjectName("iconLabel")
+        self.icon_label.setFixedSize(36, 36)
         self.icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.icon_label.setStyleSheet("""
-            QLabel {
-                padding: 0px;
-                background: transparent;
-            }
-        """)
         icon_layout.addWidget(self.icon_label)
         
         layout.addWidget(icon_container)
@@ -62,13 +51,7 @@ class FileItemWidget(QWidget):
         
         # File name with ellipsis
         self.name_label = QLabel(Path(file_path).name)
-        self.name_label.setStyleSheet("""
-            QLabel {
-                font-size: 13px;
-                font-weight: 500;
-                color: #2c3e50;
-            }
-        """)
+        self.name_label.setObjectName("nameLabel")
         self.name_label.setMaximumWidth(300)
         info_layout.addWidget(self.name_label)
         
@@ -80,16 +63,7 @@ class FileItemWidget(QWidget):
         # File type badge
         mime_type = mimetypes.guess_type(file_path)[0] or "unknown"
         type_label = QLabel(mime_type.split('/')[-1].upper())
-        type_label.setStyleSheet("""
-            QLabel {
-                background-color: #e9ecef;
-                color: #495057;
-                border-radius: 4px;
-                padding: 2px 8px;
-                font-size: 10px;
-                font-weight: 500;
-            }
-        """)
+        type_label.setObjectName("typeLabel")
         details_layout.addWidget(type_label)
         
         # File size
@@ -97,7 +71,7 @@ class FileItemWidget(QWidget):
             size = os.path.getsize(file_path)
             size_str = self.format_size(size)
             size_label = QLabel(size_str)
-            size_label.setStyleSheet("color: #6c757d; font-size: 11px;")
+            size_label.setObjectName("sizeLabel")
             details_layout.addWidget(size_label)
         except:
             pass
@@ -111,12 +85,7 @@ class FileItemWidget(QWidget):
         right_container.setSpacing(6)
         
         watched_label = QLabel("Watched")
-        watched_label.setStyleSheet("""
-            QLabel {
-                color: #6c757d;
-                font-size: 12px;
-            }
-        """)
+        watched_label.setObjectName("watchedLabel")
         
         self.checkbox = QCheckBox()
         
@@ -130,37 +99,44 @@ class FileItemWidget(QWidget):
         right_container.addWidget(self.checkbox)
         layout.addLayout(right_container)
         
-        # Apply widget style
-        self.setStyleSheet("""
-            FileItemWidget {
-                background-color: white;
-                border-radius: 8px;
-                border: 1px solid transparent;
-            }
-            FileItemWidget:hover {
-                background-color: #f8f9fa;
-                border: 1px solid #e9ecef;
-            }
-            QCheckBox {
-                spacing: 4px;
-            }
-            QCheckBox::indicator {
+        # Remove inline styles since they're now in QSS
+        self.setStyleSheet("")
+        
+        self.set_thumbnail_or_icon()
+        
+        # Get check icon path for both development and production
+        if hasattr(sys, '_MEIPASS'):
+            # Running as bundled app
+            check_path = os.path.join(sys._MEIPASS, 'icons', 'check.png')
+        else:
+            # Running in development
+            check_path = os.path.join(os.path.dirname(__file__), 'icons', 'check.png')
+        
+        check_path = check_path.replace('\\', '/')
+        
+        # Custom style for checkbox
+        checkbox_style = f"""
+            QCheckBox::indicator {{
                 width: 18px;
                 height: 18px;
                 border: 2px solid #adb5bd;
                 border-radius: 4px;
-            }
-            QCheckBox::indicator:hover {
+            }}
+            QCheckBox::indicator:hover {{
                 border-color: #0d6efd;
-            }
-            QCheckBox::indicator:checked {
+            }}
+            QCheckBox::indicator:checked {{
                 background-color: #0d6efd;
                 border-color: #0d6efd;
-                image: url(icons/check.png);
-            }
-        """)
+                image: url({check_path});
+            }}
+            QCheckBox::indicator:checked:hover {{
+                background-color: #0b5ed7;
+                border-color: #0b5ed7;
+            }}
+        """
         
-        self.set_thumbnail_or_icon()
+        self.checkbox.setStyleSheet(checkbox_style)
     
     def format_size(self, size):
         """Format file size in human readable format"""

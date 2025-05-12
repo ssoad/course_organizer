@@ -69,13 +69,61 @@ QProgressBar::chunk {
     border-radius: 3px;
 }
 
+/* File Item Widget Styles */
+FileItemWidget {
+    background-color: white;
+    border-radius: 8px;
+    border: 1px solid transparent;
+}
+
+FileItemWidget:hover {
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+}
+
+FileItemWidget QLabel#nameLabel {
+    font-size: 13px;
+    font-weight: 500;
+    color: #2c3e50;
+}
+
+FileItemWidget QLabel#typeLabel {
+    background-color: #e9ecef;
+    color: #495057;
+    border-radius: 4px;
+    padding: 2px 8px;
+    font-size: 10px;
+    font-weight: 500;
+}
+
+FileItemWidget QLabel#sizeLabel {
+    color: #6c757d;
+    font-size: 11px;
+}
+
+FileItemWidget QLabel#watchedLabel {
+    color: #6c757d;
+    font-size: 12px;
+}
+
+FileItemWidget QFrame#iconContainer {
+    background-color: #f1f3f5;
+    border-radius: 10px;
+    padding: 2px;
+}
+
+FileItemWidget QLabel#iconLabel {
+    padding: 0px;
+    background: transparent;
+}
+
 QCheckBox {
-    spacing: 8px;
+    spacing: 4px;
 }
 
 QCheckBox::indicator {
-    width: 20px;
-    height: 20px;
+    width: 18px;
+    height: 18px;
     border: 2px solid #adb5bd;
     border-radius: 4px;
 }
@@ -87,7 +135,17 @@ QCheckBox::indicator:hover {
 QCheckBox::indicator:checked {
     background-color: #0d6efd;
     border-color: #0d6efd;
-    image: url(icons/check.png);
+    /* image path is set in FileItemWidget */
+}
+
+QCheckBox::indicator:checked:hover {
+    background-color: #0b5ed7;
+    border-color: #0b5ed7;
+}
+
+QCheckBox::indicator:disabled {
+    background-color: #e9ecef;
+    border-color: #dee2e6;
 }
 
 /* Modern scrollbar styling */

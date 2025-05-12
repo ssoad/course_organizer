@@ -7,10 +7,15 @@
   "/Users/ssoad/Downloads/Udemy - iOS & Swift - The Complete iOS App Development Bootcamp 2024-12/01. Getting Started with iOS Development and Swift 5": {
     "1. Intro to the Course. What's coming up.mp4": true,
     "1. Intro to the Course. What's coming up.vtt": true,
-    "2. 2019-11-27_10-08-51-7384f3f4fb1a6616c6d2a946dc50ebd4.png": true
+    "2. 2019-11-27_10-08-51-7384f3f4fb1a6616c6d2a946dc50ebd4.png": true,
+    "2. Download the Course Syllabus.html": true,
+    "2. iOS Syllabus.pdf": true,
+    "3. The Giant List of Resources.html": true
   },
   "/Users/ssoad/Downloads/Udemy - The Complete Full-Stack Web Development Bootcamp 1080 2025-2/01. Front-End Web Development": {
     "1. What You'll Get in This Course.mp4": true,
-    "2. 2019-11-27_10-08-51-7384f3f4fb1a6616c6d2a946dc50ebd4.png": true
+    "2. 2019-11-27_10-08-51-7384f3f4fb1a6616c6d2a946dc50ebd4.png": true,
+    "2. Download the Course Syllabus.html": false,
+    "2. 2023 Web Dev Syllabus.pdf": true
   }
 }

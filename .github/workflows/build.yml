@@ -81,6 +81,13 @@ jobs:
       with:
         name: CourseOrganizer-${{ runner.os }}
         path: CourseOrganizer-${{ runner.os }}.zip
+        retention-days: 5  # Keep artifacts for 5 days
+
+    - name: Download Artifacts
+      uses: actions/download-artifact@v3
+      with:
+        name: CourseOrganizer-${{ runner.os }}
+        path: downloads
 
     - name: Upload Release Asset
       if: github.event_name == 'release'
