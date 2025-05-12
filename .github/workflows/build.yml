@@ -135,7 +135,7 @@ jobs:
 
     - name: Upload Build Artifact (macOS)
       if: runner.os == 'macOS'
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@master
       with:
         name: CourseOrganizer-macOS-DMG
         path: "dist/Course Tracker.dmg"
