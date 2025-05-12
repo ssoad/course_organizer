@@ -79,11 +79,29 @@ jobs:
       shell: bash
       run: echo "POPPLER_PATH=/usr" >> $GITHUB_ENV
 
-    - name: Debug Environment Variables
+    - name: Debug Environment Variables (Unix)
+      if: runner.os != 'Windows'
+      shell: bash
       run: |
         echo "Current directory: $(pwd)"
         echo "POPPLER_PATH: $POPPLER_PATH"
         ls -la  # List directory contents
+
+    - name: Debug Environment Variables (Windows)
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: |
+        Write-Host "Current directory: $pwd"
+        Write-Host "POPPLER_PATH: $env:POPPLER_PATH"
+        Get-ChildItem  # List directory contents
+        
+        # Verify poppler directory exists
+        if (Test-Path $env:POPPLER_PATH) {
+          Write-Host "Poppler directory found"
+          Get-ChildItem $env:POPPLER_PATH
+        } else {
+          Write-Host "ERROR: Poppler directory not found at $env:POPPLER_PATH"
+        }
 
     - name: Build Application
       run: |
