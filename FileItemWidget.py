@@ -12,62 +12,53 @@ from pdf2image import convert_from_path
 from pathlib import Path
 
 class FileItemWidget(QWidget):
-    watchedChanged = pyqtSignal(str, bool)
+    watchedChanged = pyqtSignal(str, bool)  # Signal for watch state changes
     
-    def __init__(self, file_path, watched=False, parent=None):
+    def __init__(self, file_path, watched=False, parent=None, manager=None):
         super().__init__(parent)
         self.file_path = file_path
-        self.thumbnail_size = QSize(48, 48)
+        self.manager = manager  # Store manager reference
+        self.thumbnail_size = QSize(32, 32)  # Reduced from 40 to 32 for clarity
         
         # Main layout
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(12, 12, 12, 12)
-        layout.setSpacing(15)
+        layout.setContentsMargins(12, 8, 16, 8)
+        layout.setSpacing(12)
         
-        # Left container for checkbox and icon
-        left_container = QHBoxLayout()
-        left_container.setSpacing(12)
-        
-        # Add checkbox with modern style
-        self.checkbox = QCheckBox()
-        self.checkbox.setChecked(watched)
-        self.checkbox.stateChanged.connect(self.on_watch_changed)
-        left_container.addWidget(self.checkbox)
-        
-        # Icon container with shadow
-        icon_container = QWidget()
-        icon_container.setFixedSize(50, 50)
+        # Left side - Icon container with shadow
+        icon_container = QFrame()
+        icon_container.setFixedSize(44, 44)  # Increased container size
         icon_container.setStyleSheet("""
-            QWidget {
-                background-color: #f8f9fa;
-                border-radius: 8px;
+            QFrame {
+                background-color: #f1f3f5;
+                border-radius: 10px;
+                padding: 2px;
             }
         """)
         
-        # Add shadow to icon container
-        # icon_shadow = QGraphicsDropShadowEffect()
-        # icon_shadow.setBlurRadius(8)
-        # icon_shadow.setXOffset(0)
-        # icon_shadow.setYOffset(2)
-        # icon_shadow.setColor(QColor(0, 0, 0, 30))
-        # icon_container.setGraphicsEffect(icon_shadow)
-        
         # Icon layout
         icon_layout = QVBoxLayout(icon_container)
-        icon_layout.setContentsMargins(4, 4, 4, 4)
+        icon_layout.setContentsMargins(4, 4, 4, 4)  # Reduced margins
+        icon_layout.setSpacing(0)
         
-        # Add icon
+        # Add icon with fixed size
         self.icon_label = QLabel()
-        self.icon_label.setFixedSize(42, 42)
+        self.icon_label.setFixedSize(36, 36)  # Increased icon size
         self.icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.icon_label.setStyleSheet("""
+            QLabel {
+                padding: 0px;
+                background: transparent;
+            }
+        """)
         icon_layout.addWidget(self.icon_label)
         
-        left_container.addWidget(icon_container)
-        layout.addLayout(left_container)
+        layout.addWidget(icon_container)
         
-        # Center container for file info
+        # Center - File info
         info_layout = QVBoxLayout()
         info_layout.setSpacing(4)
+        info_layout.setContentsMargins(0, 0, 0, 0)
         
         # File name with ellipsis
         self.name_label = QLabel(Path(file_path).name)
@@ -78,11 +69,13 @@ class FileItemWidget(QWidget):
                 color: #2c3e50;
             }
         """)
+        self.name_label.setMaximumWidth(300)
         info_layout.addWidget(self.name_label)
         
-        # File details (type and size)
+        # File details row
         details_layout = QHBoxLayout()
         details_layout.setSpacing(8)
+        details_layout.setContentsMargins(0, 0, 0, 0)
         
         # File type badge
         mime_type = mimetypes.guess_type(file_path)[0] or "unknown"
@@ -111,26 +104,49 @@ class FileItemWidget(QWidget):
         
         details_layout.addStretch()
         info_layout.addLayout(details_layout)
-        
         layout.addLayout(info_layout)
-        layout.addStretch()
+        
+        # Right side - Watched checkbox with label
+        right_container = QHBoxLayout()
+        right_container.setSpacing(6)
+        
+        watched_label = QLabel("Watched")
+        watched_label.setStyleSheet("""
+            QLabel {
+                color: #6c757d;
+                font-size: 12px;
+            }
+        """)
+        
+        self.checkbox = QCheckBox()
+        
+        # Initialize checkbox with saved state
+        if self.manager:
+            watched = self.manager.is_file_watched(file_path)
+        self.checkbox.setChecked(watched)
+        self.checkbox.stateChanged.connect(self.on_watch_changed)
+        
+        right_container.addWidget(watched_label)
+        right_container.addWidget(self.checkbox)
+        layout.addLayout(right_container)
         
         # Apply widget style
         self.setStyleSheet("""
             FileItemWidget {
                 background-color: white;
                 border-radius: 8px;
+                border: 1px solid transparent;
             }
             FileItemWidget:hover {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                    stop:0 #f8f9fa, stop:1 #ffffff);
+                background-color: #f8f9fa;
+                border: 1px solid #e9ecef;
             }
             QCheckBox {
-                spacing: 8px;
+                spacing: 4px;
             }
             QCheckBox::indicator {
-                width: 20px;
-                height: 20px;
+                width: 18px;
+                height: 18px;
                 border: 2px solid #adb5bd;
                 border-radius: 4px;
             }
@@ -156,15 +172,11 @@ class FileItemWidget(QWidget):
     
     def on_watch_changed(self, state):
         """Handle checkbox state changes"""
-        self.watchedChanged.emit(self.file_path, state == Qt.CheckState.Checked)
+        is_watched = state == 2  # 2 means checked
+        if self.manager:
+            self.manager.update_file_watched_state(self.file_path, is_watched)
+        self.watchedChanged.emit(self.file_path, is_watched)
         
-        # Update widget appearance based on watched state
-        self.setStyleSheet(self.styleSheet() + f"""
-            FileItemWidget {{
-                background-color: {'#f8f9fa' if state == Qt.CheckState.Checked else 'white'};
-            }}
-        """)
-
     def set_thumbnail_or_icon(self):
         """Set appropriate thumbnail or icon for the file type"""
         mime_type, _ = mimetypes.guess_type(self.file_path)
@@ -186,17 +198,33 @@ class FileItemWidget(QWidget):
         try:
             # Open image and create thumbnail
             image = Image.open(self.file_path)
-            image.thumbnail((48, 48))
+            # Convert to RGBA if necessary
+            if image.mode != 'RGBA':
+                image = image.convert('RGBA')
             
-            # Convert PIL image to QPixmap
+            # Calculate size maintaining aspect ratio
+            target_size = 32
+            ratio = min(target_size/float(image.size[0]), target_size/float(image.size[1]))
+            new_size = tuple([int(dim * ratio) for dim in image.size])
+            
+            # Resize with high quality
+            image = image.resize(new_size, Image.Resampling.LANCZOS)
+            
+            # Create new image with padding
+            final_image = Image.new('RGBA', (target_size, target_size), (0, 0, 0, 0))
+            paste_x = (target_size - new_size[0]) // 2
+            paste_y = (target_size - new_size[1]) // 2
+            final_image.paste(image, (paste_x, paste_y))
+            
+            # Convert to QPixmap
             bytes_io = io.BytesIO()
-            image.save(bytes_io, format='PNG')
+            final_image.save(bytes_io, format='PNG')
             pixmap = QPixmap()
             pixmap.loadFromData(bytes_io.getvalue())
             
             self.icon_label.setPixmap(pixmap)
-            
-        except Exception:
+        except Exception as e:
+            print(f"Image thumbnail error: {e}")
             self.set_file_icon('image/')
 
     def set_video_thumbnail(self):
@@ -345,15 +373,27 @@ class FileItemWidget(QWidget):
         # Construct icon path
         icon_path = os.path.join(os.path.dirname(__file__), 'icons', icon_file)
         
-        # Load and set icon
+        # Load and set icon with high quality scaling
         if os.path.exists(icon_path):
             pixmap = QPixmap(icon_path)
             scaled_pixmap = pixmap.scaled(
-                self.thumbnail_size,
+                32, 32,  # Fixed size for icons
                 Qt.AspectRatioMode.KeepAspectRatio,
                 Qt.TransformationMode.SmoothTransformation
             )
-            self.icon_label.setPixmap(scaled_pixmap)
+            
+            # Center the icon if needed
+            if scaled_pixmap.width() < 32 or scaled_pixmap.height() < 32:
+                final_pixmap = QPixmap(32, 32)
+                final_pixmap.fill(Qt.GlobalColor.transparent)
+                painter = QPainter(final_pixmap)
+                x = (32 - scaled_pixmap.width()) // 2
+                y = (32 - scaled_pixmap.height()) // 2
+                painter.drawPixmap(x, y, scaled_pixmap)
+                painter.end()
+                self.icon_label.setPixmap(final_pixmap)
+            else:
+                self.icon_label.setPixmap(scaled_pixmap)
         else:
             # Fallback to system icons if custom icon not found
             icon = QIcon.fromTheme('text-x-generic')

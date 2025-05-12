@@ -4,9 +4,9 @@ QMainWindow {
 
 QToolBar {
     background-color: rgba(255, 255, 255, 0.95);
-    border: none;
-    padding: 10px;
+    border-bottom: 1px solid #e9ecef;
     spacing: 10px;
+    padding: 8px 16px;
 }
 
 QToolButton {
@@ -34,12 +34,14 @@ QListWidget {
     border: none;
     border-radius: 12px;
     padding: 15px;
+    padding-right: 24px; /* Extra padding for scrollbar */
 }
 
 QListWidget::item {
     background-color: white;
     border-radius: 8px;
     margin-bottom: 8px;
+    margin-right: 8px;
     padding: 10px;
 }
 
@@ -67,37 +69,53 @@ QProgressBar::chunk {
     border-radius: 3px;
 }
 
-QToolBar {
-    background-color: rgba(255, 255, 255, 0.95);
-    border-bottom: 1px solid #e9ecef;
-    padding: 5px 15px;
-    spacing: 10px;
+QCheckBox {
+    spacing: 8px;
 }
 
-QToolButton {
-    background-color: #ffffff;
-    border: 1px solid #e0e0e0;
-    border-radius: 6px;
-    padding: 5px 15px;
-    font-weight: 500;
-    min-width: 100px;
-    height: 36px;
+QCheckBox::indicator {
+    width: 20px;
+    height: 20px;
+    border: 2px solid #adb5bd;
+    border-radius: 4px;
 }
 
-QToolButton:hover {
-    background-color: #f8f9fa;
+QCheckBox::indicator:hover {
     border-color: #0d6efd;
-    color: #0d6efd;
 }
 
-QToolButton:pressed {
-    background-color: #e7f5ff;
+QCheckBox::indicator:checked {
+    background-color: #0d6efd;
     border-color: #0d6efd;
-    color: #0d6efd;
+    image: url(icons/check.png);
 }
 
-QToolButton:disabled {
-    background-color: #f8f9fa;
-    border-color: #e9ecef;
-    color: #adb5bd;
+/* Modern scrollbar styling */
+QScrollBar:vertical {
+    border: none;
+    background-color: transparent;
+    width: 16px;
+    margin: 15px 0 15px 0;
+}
+
+QScrollBar::handle:vertical {
+    background-color: #dee2e6;
+    border-radius: 8px;
+    min-height: 30px;
+    margin: 0 4px;
+    width: 8px;
+}
+
+QScrollBar::handle:vertical:hover {
+    background-color: #adb5bd;
+}
+
+QScrollBar::add-line:vertical,
+QScrollBar::sub-line:vertical {
+    height: 0px;
+}
+
+QScrollBar::add-page:vertical,
+QScrollBar::sub-page:vertical {
+    background: none;
 }

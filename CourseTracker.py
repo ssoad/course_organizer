@@ -5,6 +5,7 @@ from course_manager import CourseManager
 from FileItemWidget import FileItemWidget
 from DirectoryItemWidget import DirectoryItemWidget
 import os
+from natsort import natsorted
 
 class CourseTrackerApp(QMainWindow):
     def __init__(self):
@@ -30,8 +31,37 @@ class CourseTrackerApp(QMainWindow):
         toolbar = QToolBar()
         toolbar.setIconSize(QSize(24, 24))
         toolbar.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
-        toolbar.setFixedHeight(50)  # Set fixed height for toolbar
+        toolbar.setMovable(False)
+        toolbar.setFloatable(False)
+        toolbar.setFixedHeight(90)  # Increased height
         self.addToolBar(toolbar)
+        
+        # Define button style
+        button_style = """
+            QToolButton {
+                background-color: #ffffff;
+                border: 1px solid #e0e0e0;
+                border-radius: 8px;
+                padding: 8px 16px;
+                font-weight: 500;
+                font-size: 13px;
+                min-width: 100px;
+                min-height: 36px;
+            }
+            QToolButton:hover {
+                background-color: #f8f9fa;
+                border-color: #0d6efd;
+                color: #0d6efd;
+            }
+            QToolButton:pressed {
+                background-color: #e7f5ff;
+            }
+            QToolButton:disabled {
+                background-color: #f8f9fa;
+                border-color: #e9ecef;
+                color: #adb5bd;
+            }
+        """
         
         # Add custom toolbar buttons
         self.back_action = QAction("Back", self)
@@ -47,21 +77,32 @@ class CourseTrackerApp(QMainWindow):
         back_button = QToolButton()
         back_button.setDefaultAction(self.back_action)
         back_button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+        back_button.setStyleSheet(button_style)
         
         add_button = QToolButton()
         add_button.setDefaultAction(self.add_action)
         add_button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+        add_button.setStyleSheet(button_style)
         
         remove_button = QToolButton()
         remove_button.setDefaultAction(self.remove_action)
         remove_button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+        remove_button.setStyleSheet(button_style)
         
-        # Add buttons to toolbar
+        # Create spacer widget for toolbar
+        def create_spacer(width):
+            spacer = QWidget()
+            spacer.setFixedWidth(width)
+            return spacer
+        
+        # Add buttons to toolbar with spacing widgets
         toolbar.addWidget(back_button)
+        toolbar.addWidget(create_spacer(8))  # Replace addSpacing
         toolbar.addWidget(add_button)
+        toolbar.addWidget(create_spacer(8))  # Replace addSpacing
         toolbar.addWidget(remove_button)
         
-        # Add spacer to toolbar
+        # Add expanding spacer to toolbar
         spacer = QWidget()
         spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         toolbar.addWidget(spacer)
@@ -99,127 +140,7 @@ class CourseTrackerApp(QMainWindow):
                 self.setStyleSheet(f.read())
         except Exception as e:
             print(f"Error loading styles: {e}")
-            # Fallback to inline styles if file not found
-            self.setStyleSheet("""
-                QMainWindow {
-                    background-color: #f8f9fa;
-                }
-                
-                QToolBar {
-                    background-color: rgba(255, 255, 255, 0.95);
-                    border: none;
-                    padding: 10px;
-                    spacing: 10px;
-                }
-                
-                QToolButton {
-                    background-color: #ffffff;
-                    border: 1px solid #e0e0e0;
-                    border-radius: 6px;
-                    padding: 5px 15px;
-                    font-weight: 500;
-                }
-                
-                QToolButton:hover {
-                    background-color: #f8f9fa;
-                    border-color: #0d6efd;
-                    color: #0d6efd;
-                }
-                
-                QToolButton:disabled {
-                    background-color: #f8f9fa;
-                    border-color: #e9ecef;
-                    color: #adb5bd;
-                }
-                
-                QListWidget {
-                    background-color: transparent;
-                    border: none;
-                    border-radius: 12px;
-                    padding: 15px;
-                }
-                
-                QListWidget::item {
-                    background-color: white;
-                    border-radius: 8px;
-                    margin-bottom: 8px;
-                    padding: 10px;
-                }
-                
-                QListWidget::item:hover {
-                    background-color: #f8f9fa;
-                    border: 1px solid #e9ecef;
-                }
-                
-                QListWidget::item:selected {
-                    background-color: #e7f5ff;
-                    border: 1px solid #74c0fc;
-                    color: #1864ab;
-                }
-                
-                QProgressBar {
-                    border: none;
-                    border-radius: 3px;
-                    background-color: #e9ecef;
-                    height: 6px;
-                    text-align: center;
-                }
-                
-                QProgressBar::chunk {
-                    background-color: #20c997;
-                    border-radius: 3px;
-                }
-                
-                QCheckBox {
-                    spacing: 8px;
-                }
-                
-                QCheckBox::indicator {
-                    width: 20px;
-                    height: 20px;
-                    border: 2px solid #adb5bd;
-                    border-radius: 4px;
-                }
-                
-                QCheckBox::indicator:hover {
-                    border-color: #0d6efd;
-                }
-                
-                QCheckBox::indicator:checked {
-                    background-color: #0d6efd;
-                    border-color: #0d6efd;
-                    image: url(icons/check.png);
-                }
-                
-                /* Modern scrollbar styling */
-                QScrollBar:vertical {
-                    border: none;
-                    background-color: #f8f9fa;
-                    width: 8px;
-                    margin: 0;
-                }
-                
-                QScrollBar::handle:vertical {
-                    background-color: #dee2e6;
-                    border-radius: 4px;
-                    min-height: 30px;
-                }
-                
-                QScrollBar::handle:vertical:hover {
-                    background-color: #adb5bd;
-                }
-                
-                QScrollBar::add-line:vertical,
-                QScrollBar::sub-line:vertical {
-                    height: 0px;
-                }
-                
-                QScrollBar::add-page:vertical,
-                QScrollBar::sub-page:vertical {
-                    background: none;
-                }
-            """)
-
+        
         # Apply drop shadow to the main window
         shadow = QGraphicsDropShadowEffect(self)
         shadow.setBlurRadius(20)
@@ -261,11 +182,16 @@ class CourseTrackerApp(QMainWindow):
             pass
 
     def load_directory_list(self):
+        """Load and display naturally sorted directory list"""
         self.content_list.clear()
-        for directory in self.manager.directories:
+        
+        # Sort directories naturally before displaying
+        sorted_directories = natsorted(self.manager.directories)
+        
+        for directory in sorted_directories:
             progress = self.manager.calculate_directory_progress(directory)
             item = QListWidgetItem(self.content_list)
-            item.setSizeHint(QSize(0, 120))  # Set height for directory items
+            item.setSizeHint(QSize(0, 120))
             item.setData(Qt.ItemDataRole.UserRole, directory)
             
             widget = DirectoryItemWidget(directory, progress)
@@ -291,7 +217,12 @@ class CourseTrackerApp(QMainWindow):
                 item.setSizeHint(QSize(0, 100))
                 item.setData(Qt.ItemDataRole.UserRole, file_path)
                 
-                widget = FileItemWidget(file_path, watched)
+                widget = FileItemWidget(
+                    file_path, 
+                    watched, 
+                    manager=self.manager  # Pass manager reference
+                )
+                widget.watchedChanged.connect(self.on_file_watched_changed)
                 self.content_list.setItemWidget(item, widget)
                 
         except Exception as e:
@@ -305,23 +236,31 @@ class CourseTrackerApp(QMainWindow):
             progress = self.manager.calculate_directory_progress(self.current_directory)
             self.update_directory_progress(self.current_directory, progress)
 
-    def update_directory_progress(self, directory, progress):
+    def on_file_watched_changed(self, file_path, watched):
+        """Handle file watched state changes"""
+        directory = os.path.dirname(file_path)
+        
+        # Update watched state and get new progress
+        progress = self.manager.update_file_watched_state(file_path, watched)
+        
+        # Update UI
+        self.update_directory_progress(directory, progress)
+        
+        # If we're in a subdirectory, update parent directory progress too
+        if self.current_directory:
+            parent_progress = self.manager.calculate_directory_progress(self.current_directory)
+            self.update_directory_progress(self.current_directory, parent_progress)
+
+    def update_directory_progress(self, directory, progress=None):
         """Update the progress display for a directory item"""
-        # Find the item that corresponds to the directory
+        if progress is None:
+            progress = self.manager.calculate_directory_progress(directory)
+            
+        # Find and update directory widget
         for index in range(self.content_list.count()):
             item = self.content_list.item(index)
             if item and item.data(Qt.ItemDataRole.UserRole) == directory:
-                # If we're in the main directory list
-                if not self.current_directory:
-                    widget = self.content_list.itemWidget(item)
-                    if isinstance(widget, DirectoryItemWidget):
-                        widget.update_progress(progress)
-                # If we're viewing directory contents
-                else:
-                    item_text = f"📁 {os.path.basename(directory)} ({progress:.1f}%)"
-                    item.setText(item_text)
+                widget = self.content_list.itemWidget(item)
+                if isinstance(widget, DirectoryItemWidget):
+                    widget.update_progress(progress)
                 break
-
-        # If we're in the main directory list, also update the progress in CourseManager
-        if not self.current_directory:
-            self.manager.update_directory_progress(directory, progress)
