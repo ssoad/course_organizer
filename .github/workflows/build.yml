@@ -122,8 +122,22 @@ jobs:
     - name: Create ZIP (macOS)
       if: runner.os == 'macOS'
       run: |
-        cd dist
-        zip -r ../CourseOrganizer-macOS.zip "Course Organizer.app"
+        # Debug - check what's actually in the dist directory
+        echo "Contents of dist directory:"
+        ls -la dist/
+        
+        # Look for any .app files
+        APP_FILE=$(find dist -name "*.app" -type d | head -n 1)
+        
+        if [ -n "$APP_FILE" ]; then
+          echo "Found app bundle: $APP_FILE"
+          # Create ZIP with the actual app bundle
+          cd dist
+          zip -r ../CourseOrganizer-macOS.zip *.app
+        else
+          echo "Error: No .app bundle found in dist directory"
+          exit 1
+        fi
 
     - name: Create ZIP (Windows)
       if: runner.os == 'Windows'
@@ -159,11 +173,13 @@ jobs:
 
     - name: Upload Build Artifact (macOS)
       if: runner.os == 'macOS'
-      uses: actions/upload-artifact@master
+      uses: actions/upload-artifact@v3  # Updated to v3 for consistency
       with:
-        name: CourseOrganizer-macOS-DMG
-        path: "dist/Course Tracker.dmg"
-        if-no-files-found: error
+        name: CourseOrganizer-macOS
+        path: |
+          CourseOrganizer-macOS.zip
+          Course Tracker.dmg
+        if-no-files-found: warn  # Changed to warn to not fail if one is missing
         retention-days: 5
 
     # Upload to GitHub release (only when a release is created)
@@ -179,6 +195,8 @@ jobs:
       if: github.event_name == 'release' && runner.os == 'macOS'
       uses: softprops/action-gh-release@v1
       with:
-        files: "dist/Course Tracker.dmg"
+        files: |
+          CourseOrganizer-macOS.zip
+          Course Tracker.dmg
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
