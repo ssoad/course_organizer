@@ -13,8 +13,13 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [macos-latest, windows-latest, ubuntu-latest]
-        python-version: ['3.10']
+        include:
+          - os: macos-latest
+            arch: arm64
+          - os: macos-latest
+            arch: x64
+          - os: windows-latest
+          - os: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v3
@@ -22,25 +27,32 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: ${{ matrix.python-version }}
+        python-version: '3.10'
         cache: 'pip'
 
-    - name: Install dependencies (macOS)
-      if: runner.os == 'macOS'
+    - name: Install dependencies (macOS-arm64)
+      if: runner.os == 'macOS' && matrix.arch == 'arm64'
       run: |
         brew install poppler
         brew install create-dmg
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-        
-        # Install PyInstaller with specific options for universal builds
         pip install pyinstaller==6.0.0
-
-        # Save actual poppler directory for later use
-        echo "POPPLER_PATH=$(brew --prefix poppler)" >> $GITHUB_ENV
         
-        # Set architecture flags for universal binary
-        echo "ARCHFLAGS='-arch x86_64 -arch arm64'" >> $GITHUB_ENV
+        echo "POPPLER_PATH=$(brew --prefix poppler)" >> $GITHUB_ENV
+        echo "ARCHFLAGS='-arch arm64'" >> $GITHUB_ENV
+
+    - name: Install dependencies (macOS-x64)
+      if: runner.os == 'macOS' && matrix.arch == 'x64'
+      run: |
+        brew install poppler
+        brew install create-dmg
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pyinstaller==6.0.0
+        
+        echo "POPPLER_PATH=$(brew --prefix poppler)" >> $GITHUB_ENV
+        echo "ARCHFLAGS='-arch x86_64'" >> $GITHUB_ENV
 
     - name: Install dependencies (Ubuntu)
       if: runner.os == 'Linux'
@@ -58,18 +70,14 @@ jobs:
         pip install -r requirements.txt
         pip install pyinstaller
         
-        # Download poppler with error checking
         echo "Downloading poppler for Windows..."
         curl -L -o poppler.zip "https://github.com/oschwartz10612/poppler-windows/releases/download/v24.08.0-0/Release-24.08.0-0.zip"
         
-        # Verify download
         dir poppler.zip
         
-        # Extract with verbose output
         echo "Extracting poppler..."
         7z x poppler.zip -opopplerbin -y
         
-        # Verify extraction
         dir popplerbin
 
     - name: Set Poppler Path (Windows)
@@ -77,7 +85,7 @@ jobs:
       shell: bash
       run: |
         echo "POPPLER_PATH=$GITHUB_WORKSPACE/popplerbin" >> $GITHUB_ENV
-        ls -la $GITHUB_WORKSPACE/popplerbin  # Debug output
+        ls -la $GITHUB_WORKSPACE/popplerbin
 
     - name: Set Poppler Path (Linux)
       if: runner.os == 'Linux'
@@ -90,7 +98,7 @@ jobs:
       run: |
         echo "Current directory: $(pwd)"
         echo "POPPLER_PATH: $POPPLER_PATH"
-        ls -la  # List directory contents
+        ls -la
 
     - name: Debug Environment Variables (Windows)
       if: runner.os == 'Windows'
@@ -98,9 +106,8 @@ jobs:
       run: |
         Write-Host "Current directory: $pwd"
         Write-Host "POPPLER_PATH: $env:POPPLER_PATH"
-        Get-ChildItem  # List directory contents
+        Get-ChildItem
         
-        # Verify poppler directory exists
         if (Test-Path $env:POPPLER_PATH) {
           Write-Host "Poppler directory found"
           Get-ChildItem $env:POPPLER_PATH
@@ -112,67 +119,61 @@ jobs:
       run: |
         python -m PyInstaller build.spec
 
-    - name: Build macOS Application with DMG
-      if: runner.os == 'macOS'
+    - name: Build macOS Application (arm64)
+      if: runner.os == 'macOS' && matrix.arch == 'arm64'
       run: |
-        # Make build script executable
+        sed -i '' 's/^.*target_arch=.*$/        target_arch="arm64",/' build.spec
         chmod +x build.sh
-    
-        # Now run PyInstaller with the modified spec file
         python -m PyInstaller build.spec
-    
-        # Run the build script for DMG creation
         ./build.sh
-    
-        # Debug output
-        ls -la dist/
-        ls -la .
-        file dist/*.app/Contents/MacOS/* || true
+        
+        cd dist
+        mv "Course Tracker.app" "Course Tracker-arm64.app" || true
+        cd ..
+        mv "Course Tracker.dmg" "Course Tracker-arm64.dmg" || true
 
-    # Create platform-specific packages
-    - name: Create ZIP (macOS)
-      if: runner.os == 'macOS'
+    - name: Build macOS Application (x64)
+      if: runner.os == 'macOS' && matrix.arch == 'x64'
       run: |
-        # Debug - check what's actually in the dist directory
-        echo "Contents of dist directory:"
-        ls -la dist/
+        sed -i '' 's/^.*target_arch=.*$/        target_arch="x86_64",/' build.spec
+        chmod +x build.sh
+        python -m PyInstaller build.spec
+        ./build.sh
         
-        # Look for any .app files
-        APP_FILE=$(find dist -name "*.app" -type d | head -n 1)
-        
-        if [ -n "$APP_FILE" ]; then
-          echo "Found app bundle: $APP_FILE"
-          # Create ZIP with the actual app bundle
-          cd dist
-          zip -r ../CourseOrganizer-macOS.zip *.app
-        else {
-          echo "Error: No .app bundle found in dist directory"
-          exit 1
-        fi
+        cd dist
+        mv "Course Tracker.app" "Course Tracker-x64.app" || true
+        cd ..
+        mv "Course Tracker.dmg" "Course Tracker-x64.dmg" || true
+
+    - name: Create ZIP (macOS-arm64)
+      if: runner.os == 'macOS' && matrix.arch == 'arm64'
+      run: |
+        cd dist
+        zip -r ../CourseOrganizer-macOS-arm64.zip *-arm64.app
+
+    - name: Create ZIP (macOS-x64)
+      if: runner.os == 'macOS' && matrix.arch == 'x64'
+      run: |
+        cd dist
+        zip -r ../CourseOrganizer-macOS-x64.zip *-x64.app
 
     - name: Create ZIP (Windows)
       if: runner.os == 'Windows'
       run: |
-        # Debug - check what's actually in the dist directory
         Write-Host "Contents of dist directory:"
         Get-ChildItem -Path dist -Force
         
-        # Create ZIP file with wildcard matching
         cd dist
-        # Use wildcards to match whatever directory name is actually present
         7z a ../CourseOrganizer-Windows.zip *
 
     - name: Create ZIP (Linux)
       if: runner.os == 'Linux'
       run: |
         cd dist
-        # List directory contents to debug
         echo "Contents of dist directory:"
         ls -la
-        # Use wildcard to match the actual directory name
         zip -r ../CourseOrganizer-Linux.zip ./*
 
-    # Upload artifacts
     - name: Upload Build Artifact (Windows/Linux)
       if: runner.os != 'macOS'
       uses: actions/upload-artifact@master
@@ -184,17 +185,15 @@ jobs:
 
     - name: Upload Build Artifact (macOS)
       if: runner.os == 'macOS'
-      uses: actions/upload-artifact@master  # Updated to v3 for better stability
+      uses: actions/upload-artifact@v3
       with:
-        name: CourseOrganizer-macOS-Universal
+        name: CourseOrganizer-macOS-${{ matrix.arch }}
         path: |
-          CourseOrganizer-macOS.zip
-          ./Course*.dmg
-          ./dist/Course*.dmg
+          CourseOrganizer-macOS-${{ matrix.arch }}.zip
+          *-${{ matrix.arch }}.dmg
         if-no-files-found: warn
         retention-days: 5
 
-    # Upload to GitHub release (only when a release is created)
     - name: Upload Release Asset (Windows/Linux)
       if: github.event_name == 'release' && runner.os != 'macOS'
       uses: softprops/action-gh-release@v1
@@ -208,7 +207,7 @@ jobs:
       uses: softprops/action-gh-release@v1
       with:
         files: |
-          CourseOrganizer-macOS.zip
-          Course Tracker.dmg
+          CourseOrganizer-macOS-${{ matrix.arch }}.zip
+          Course Tracker-${{ matrix.arch }}.dmg
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

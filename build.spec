@@ -101,7 +101,6 @@ if sys.platform.startswith('darwin'):
         upx=True,
         runtime_tmpdir=None,
         console=False,
-        target_arch='universal2',
         codesign_identity=None,
         entitlements_file=None,
         icon=icon_path,
