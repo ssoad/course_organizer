@@ -1,25 +1,38 @@
 # -*- mode: python ; coding: utf-8 -*-
 import sys
 import os
-from PyInstaller.utils.hooks import collect_data_files, collect_dynamic_libs
+from PyInstaller.utils.hooks import collect_data_files
 
 block_cipher = None
 
-# Get poppler path - assumes it's installed via homebrew
-poppler_path = '/opt/homebrew/Cellar/poppler/23.11.0/bin'  # Update version as needed
-pdf2image_path = 'pdf2image'
+# Define base directory
+BASE_DIR = os.path.abspath(os.path.dirname('__main__'))
+
+# Get poppler path from environment
+poppler_path = os.getenv('POPPLER_PATH', '/opt/homebrew/opt/poppler')
+
+# Define icon path with absolute path
+icon_path = os.path.join(BASE_DIR, 'icons', 'app.icns')
 
 a = Analysis(
-    ['main.py'],
-    pathex=[],
+    [os.path.join(BASE_DIR, 'main.py')],
+    pathex=[BASE_DIR],
     binaries=[
-        (os.path.join(poppler_path, 'pdftocairo'), 'poppler/bin'),
-        (os.path.join(poppler_path, 'pdfinfo'), 'poppler/bin'),
+        (os.path.join(poppler_path, 'bin/pdftocairo'), 'poppler/bin'),
+        (os.path.join(poppler_path, 'bin/pdfinfo'), 'poppler/bin'),
     ],
     datas=[
-        ('icons/*', 'icons'),
+        (os.path.join(BASE_DIR, 'icons/*'), 'icons'),
+        (os.path.join(BASE_DIR, 'styles.qss'), '.'),
     ],
-    hiddenimports=['PIL._tkinter_finder'],
+    hiddenimports=[
+        'PIL._tkinter_finder',
+        'PyQt6.QtSvg',
+        'PyQt6.QtCore',
+        'PyQt6.QtGui',
+        'PyQt6.QtWidgets',
+        'cv2',
+    ],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
@@ -64,16 +77,14 @@ coll = COLLECT(
 app = BUNDLE(
     coll,
     name='Course Tracker.app',
-    icon=None,
+    icon=icon_path if os.path.exists(icon_path) else None,
     bundle_identifier='com.coursetracker.app',
     info_plist={
         'NSHighResolutionCapable': 'True',
         'LSMinimumSystemVersion': '10.15',
-        'NSDocumentTypes': [{
-            'CFBundleTypeName': 'PDF',
-            'CFBundleTypeRole': 'Viewer',
-            'LSHandlerRank': 'Alternate',
-            'LSItemContentTypes': ['com.adobe.pdf'],
-        }],
+        'CFBundleDisplayName': 'Course Tracker',
+        'CFBundleName': 'Course Tracker',
+        'CFBundleVersion': '1.0.0',
+        'CFBundleShortVersionString': '1.0.0',
     },
 )
