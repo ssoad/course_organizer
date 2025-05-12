@@ -79,15 +79,41 @@ jobs:
     - name: Upload Artifact
       uses: actions/upload-artifact@v3
       with:
-        name: CourseOrganizer-${{ runner.os }}
-        path: CourseOrganizer-${{ runner.os }}.zip
-        retention-days: 5  # Keep artifacts for 5 days
+        name: CourseOrganizer-${{ matrix.os }}
+        path: |
+          dist/
+          !dist/**/*.pyc
+          !dist/**/__pycache__
+        if-no-files-found: error
+        retention-days: 5
 
-    - name: Download Artifacts
+    - name: Download All Artifacts
       uses: actions/download-artifact@v3
+      if: github.event_name == 'release'
       with:
-        name: CourseOrganizer-${{ runner.os }}
-        path: downloads
+        path: releases
+
+    - name: Create Release Asset
+      if: github.event_name == 'release'
+      run: |
+        platform=""
+        case "${{ runner.os }}" in
+          "macOS")
+            platform="macOS"
+            cd releases/CourseOrganizer-macos-latest
+            zip -r ../../CourseOrganizer-macOS.zip .
+            ;;
+          "Windows")
+            platform="Windows"
+            cd releases/CourseOrganizer-windows-latest
+            7z a ../../CourseOrganizer-Windows.zip .
+            ;;
+          "Linux")
+            platform="Linux"
+            cd releases/CourseOrganizer-linux-latest
+            zip -r ../../CourseOrganizer-Linux.zip .
+            ;;
+        esac
 
     - name: Upload Release Asset
       if: github.event_name == 'release'
