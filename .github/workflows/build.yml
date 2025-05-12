@@ -29,15 +29,10 @@ jobs:
       if: runner.os == 'macOS'
       run: |
         brew install poppler
+        brew install create-dmg
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         pip install pyinstaller
-        
-        # Find poppler installation
-        echo "Checking poppler location..."
-        which pdftocairo
-        which pdfinfo
-        ls -la $(brew --prefix poppler)/bin
         
         # Save actual poppler directory for later use
         echo "POPPLER_PATH=$(brew --prefix poppler)" >> $GITHUB_ENV
@@ -94,7 +89,18 @@ jobs:
       run: |
         python -m PyInstaller build.spec
 
-    # Create platform-specific ZIP files
+    - name: Build macOS Application with DMG
+      if: runner.os == 'macOS'
+      run: |
+        # Make build script executable
+        chmod +x build.sh
+        # Run the build script
+        ./build.sh
+        
+        # Debug output
+        ls -la dist/
+
+    # Create platform-specific packages
     - name: Create ZIP (macOS)
       if: runner.os == 'macOS'
       run: |
@@ -117,20 +123,38 @@ jobs:
         # Use wildcard to match the actual directory name
         zip -r ../CourseOrganizer-Linux.zip ./*
 
-    # Upload artifacts (the ZIP files we just created)
-    - name: Upload Build Artifact
-      uses: actions/upload-artifact@master
+    # Upload artifacts
+    - name: Upload Build Artifact (Windows/Linux)
+      if: runner.os != 'macOS'
+      uses: actions/upload-artifact@v3
       with:
         name: CourseOrganizer-${{ runner.os }}
         path: CourseOrganizer-${{ runner.os }}.zip
         if-no-files-found: error
         retention-days: 5
 
+    - name: Upload Build Artifact (macOS)
+      if: runner.os == 'macOS'
+      uses: actions/upload-artifact@v3
+      with:
+        name: CourseOrganizer-macOS-DMG
+        path: "dist/Course Tracker.dmg"
+        if-no-files-found: error
+        retention-days: 5
+
     # Upload to GitHub release (only when a release is created)
-    - name: Upload Release Asset
-      if: github.event_name == 'release'
+    - name: Upload Release Asset (Windows/Linux)
+      if: github.event_name == 'release' && runner.os != 'macOS'
       uses: softprops/action-gh-release@v1
       with:
         files: CourseOrganizer-${{ runner.os }}.zip
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Upload Release Asset (macOS)
+      if: github.event_name == 'release' && runner.os == 'macOS'
+      uses: softprops/action-gh-release@v1
+      with:
+        files: "dist/Course Tracker.dmg"
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
