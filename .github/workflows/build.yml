@@ -126,7 +126,7 @@ jobs:
     # Upload artifacts
     - name: Upload Build Artifact (Windows/Linux)
       if: runner.os != 'macOS'
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@master
       with:
         name: CourseOrganizer-${{ runner.os }}
         path: CourseOrganizer-${{ runner.os }}.zip
