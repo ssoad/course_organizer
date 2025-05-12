@@ -32,10 +32,15 @@ jobs:
         brew install create-dmg
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-        pip install pyinstaller
         
+        # Install PyInstaller with specific options for universal builds
+        pip install pyinstaller==6.0.0
+
         # Save actual poppler directory for later use
         echo "POPPLER_PATH=$(brew --prefix poppler)" >> $GITHUB_ENV
+        
+        # Set architecture flags for universal binary
+        echo "ARCHFLAGS='-arch x86_64 -arch arm64'" >> $GITHUB_ENV
 
     - name: Install dependencies (Ubuntu)
       if: runner.os == 'Linux'
@@ -112,11 +117,16 @@ jobs:
       run: |
         # Make build script executable
         chmod +x build.sh
-        # Run the build script
+        
+        # Add universal build flag to PyInstaller command
+        python -m PyInstaller build.spec --target-architecture universal2
+        
+        # Run the build script for DMG creation
         ./build.sh
         
         # Debug output
         ls -la dist/
+        file dist/*.app/Contents/MacOS/* | grep "executable" || true
 
     # Create platform-specific packages
     - name: Create ZIP (macOS)
@@ -173,13 +183,13 @@ jobs:
 
     - name: Upload Build Artifact (macOS)
       if: runner.os == 'macOS'
-      uses: actions/upload-artifact@v4  # Updated to v3 for consistency
+      uses: actions/upload-artifact@master
       with:
-        name: CourseOrganizer-macOS
+        name: CourseOrganizer-macOS-Universal
         path: |
           CourseOrganizer-macOS.zip
-          Course Tracker.dmg
-        if-no-files-found: warn  # Changed to warn to not fail if one is missing
+          Course*.dmg
+        if-no-files-found: warn
         retention-days: 5
 
     # Upload to GitHub release (only when a release is created)
