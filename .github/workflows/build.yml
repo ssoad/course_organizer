@@ -58,6 +58,7 @@ jobs:
       run: |
         python -m PyInstaller build.spec
 
+    # Create platform-specific ZIP files
     - name: Create ZIP (macOS)
       if: runner.os == 'macOS'
       run: |
@@ -76,52 +77,20 @@ jobs:
         cd dist
         zip -r ../CourseOrganizer-Linux.zip "Course Organizer"
 
-    - name: Upload Artifact
-      uses: actions/upload-artifact@v3
+    # Upload artifacts (the ZIP files we just created)
+    - name: Upload Build Artifact
+      uses: actions/upload-artifact@master
       with:
-        name: CourseOrganizer-${{ matrix.os }}
-        path: |
-          dist/
-          !dist/**/*.pyc
-          !dist/**/__pycache__
+        name: CourseOrganizer-${{ runner.os }}
+        path: CourseOrganizer-${{ runner.os }}.zip
         if-no-files-found: error
         retention-days: 5
 
-    - name: Download All Artifacts
-      uses: actions/download-artifact@v3
-      if: github.event_name == 'release'
-      with:
-        path: releases
-
-    - name: Create Release Asset
-      if: github.event_name == 'release'
-      run: |
-        platform=""
-        case "${{ runner.os }}" in
-          "macOS")
-            platform="macOS"
-            cd releases/CourseOrganizer-macos-latest
-            zip -r ../../CourseOrganizer-macOS.zip .
-            ;;
-          "Windows")
-            platform="Windows"
-            cd releases/CourseOrganizer-windows-latest
-            7z a ../../CourseOrganizer-Windows.zip .
-            ;;
-          "Linux")
-            platform="Linux"
-            cd releases/CourseOrganizer-linux-latest
-            zip -r ../../CourseOrganizer-Linux.zip .
-            ;;
-        esac
-
+    # Upload to GitHub release (only when a release is created)
     - name: Upload Release Asset
       if: github.event_name == 'release'
-      uses: actions/upload-release-asset@v1
+      uses: softprops/action-gh-release@v1
+      with:
+        files: CourseOrganizer-${{ runner.os }}.zip
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ github.event.release.upload_url }}
-        asset_path: ./CourseOrganizer-${{ runner.os }}.zip
-        asset_name: CourseOrganizer-${{ runner.os }}.zip
-        asset_content_type: application/zip
