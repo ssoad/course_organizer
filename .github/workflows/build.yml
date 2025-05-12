@@ -128,8 +128,14 @@ jobs:
     - name: Create ZIP (Windows)
       if: runner.os == 'Windows'
       run: |
+        # Debug - check what's actually in the dist directory
+        Write-Host "Contents of dist directory:"
+        Get-ChildItem -Path dist -Force
+        
+        # Create ZIP file with wildcard matching
         cd dist
-        7z a ../CourseOrganizer-Windows.zip "Course Organizer"
+        # Use wildcards to match whatever directory name is actually present
+        7z a ../CourseOrganizer-Windows.zip *
 
     - name: Create ZIP (Linux)
       if: runner.os == 'Linux'
