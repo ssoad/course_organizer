@@ -52,9 +52,22 @@ jobs:
         curl -L https://github.com/oschwartz10612/poppler-windows/releases/latest/download/Release-dll.zip -o poppler.zip
         7z x poppler.zip -opopplerbin
 
+    - name: Set Poppler Path (Windows)
+      if: runner.os == 'Windows'
+      shell: bash
+      run: echo "POPPLER_PATH=${{ github.workspace }}/popplerbin" >> $GITHUB_ENV
+
+    - name: Set Poppler Path (macOS)
+      if: runner.os == 'macOS'
+      shell: bash
+      run: echo "POPPLER_PATH=/usr/local/opt/poppler" >> $GITHUB_ENV
+
+    - name: Set Poppler Path (Linux)
+      if: runner.os == 'Linux'
+      shell: bash
+      run: echo "POPPLER_PATH=/usr" >> $GITHUB_ENV
+
     - name: Build Application
-      env:
-        POPPLER_PATH: ${{ runner.os == 'Windows' && github.workspace }}/popplerbin || '/usr/local/opt/poppler'
       run: |
         python -m PyInstaller build.spec
 

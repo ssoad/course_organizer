@@ -6,10 +6,10 @@ from PyInstaller.utils.hooks import collect_data_files
 block_cipher = None
 
 # Define base directory
-BASE_DIR = os.path.abspath(os.path.dirname('__main__'))
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # Get poppler path from environment
-poppler_path = os.getenv('POPPLER_PATH', '/opt/homebrew/opt/poppler')
+poppler_path = os.environ.get('POPPLER_PATH', '')
 
 # Define icon path with absolute path
 icon_path = os.path.join(BASE_DIR, 'icons', 'app.icns')
@@ -17,10 +17,7 @@ icon_path = os.path.join(BASE_DIR, 'icons', 'app.icns')
 a = Analysis(
     [os.path.join(BASE_DIR, 'main.py')],
     pathex=[BASE_DIR],
-    binaries=[
-        (os.path.join(poppler_path, 'bin/pdftocairo'), 'poppler/bin'),
-        (os.path.join(poppler_path, 'bin/pdfinfo'), 'poppler/bin'),
-    ],
+    binaries=[],
     datas=[
         (os.path.join(BASE_DIR, 'icons/*.png'), 'icons'),  # Include all PNG icons
         (os.path.join(BASE_DIR, 'styles.qss'), '.'),
@@ -42,6 +39,23 @@ a = Analysis(
     cipher=block_cipher,
     noarchive=False,
 )
+
+# Add platform-specific binaries
+if sys.platform.startswith('win'):
+    a.binaries += [
+        (os.path.join('poppler', 'bin', 'pdftocairo.exe'), os.path.join(poppler_path, 'pdftocairo.exe'), 'BINARY'),
+        (os.path.join('poppler', 'bin', 'pdfinfo.exe'), os.path.join(poppler_path, 'pdfinfo.exe'), 'BINARY')
+    ]
+elif sys.platform.startswith('darwin'):
+    a.binaries += [
+        (os.path.join('poppler', 'bin', 'pdftocairo'), os.path.join(poppler_path, 'bin', 'pdftocairo'), 'BINARY'),
+        (os.path.join('poppler', 'bin', 'pdfinfo'), os.path.join(poppler_path, 'bin', 'pdfinfo'), 'BINARY')
+    ]
+else:  # Linux
+    a.binaries += [
+        (os.path.join('poppler', 'bin', 'pdftocairo'), os.path.join(poppler_path, 'bin', 'pdftocairo'), 'BINARY'),
+        (os.path.join('poppler', 'bin', 'pdfinfo'), os.path.join(poppler_path, 'bin', 'pdfinfo'), 'BINARY')
+    ]
 
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 
