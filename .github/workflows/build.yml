@@ -173,7 +173,7 @@ jobs:
 
     - name: Upload Build Artifact (macOS)
       if: runner.os == 'macOS'
-      uses: actions/upload-artifact@v3  # Updated to v3 for consistency
+      uses: actions/upload-artifact@v4  # Updated to v3 for consistency
       with:
         name: CourseOrganizer-macOS
         path: |
