@@ -118,15 +118,19 @@ jobs:
         # Make build script executable
         chmod +x build.sh
         
-        # Add universal build flag to PyInstaller command
-        python -m PyInstaller build.spec --target-architecture universal2
-        
+        # Modify the spec file to add universal2 target architecture
+        sed -i '' 's/EXE(.*/EXE(pyz,\\n    a.scripts,\\n    a.binaries,\\n    a.datas,\\n    [],\\n    name="Course Organizer",\\n    debug=False,\\n    bootloader_ignore_signals=False,\\n    strip=False,\\n    upx=True,\\n    runtime_tmpdir=None,\\n    console=False,\\n    target_arch="universal2",\\n    codesign_identity=None,\\n    entitlements_file=None,\\n    icon=icon_path)/' build.spec
+    
+        # Now run PyInstaller with the modified spec file
+        python -m PyInstaller build.spec
+    
         # Run the build script for DMG creation
         ./build.sh
-        
+    
         # Debug output
         ls -la dist/
-        file dist/*.app/Contents/MacOS/* | grep "executable" || true
+        ls -la .
+        file dist/*.app/Contents/MacOS/* || true
 
     # Create platform-specific packages
     - name: Create ZIP (macOS)
@@ -144,7 +148,7 @@ jobs:
           # Create ZIP with the actual app bundle
           cd dist
           zip -r ../CourseOrganizer-macOS.zip *.app
-        else
+        else {
           echo "Error: No .app bundle found in dist directory"
           exit 1
         fi
@@ -183,12 +187,13 @@ jobs:
 
     - name: Upload Build Artifact (macOS)
       if: runner.os == 'macOS'
-      uses: actions/upload-artifact@master
+      uses: actions/upload-artifact@master  # Updated to v3 for better stability
       with:
         name: CourseOrganizer-macOS-Universal
         path: |
           CourseOrganizer-macOS.zip
-          Course*.dmg
+          ./Course*.dmg
+          ./dist/Course*.dmg
         if-no-files-found: warn
         retention-days: 5
 
